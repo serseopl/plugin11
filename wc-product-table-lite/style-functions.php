@@ -17,7 +17,7 @@ function wcpt_print_styles()
   // echo ob_get_clean();
 }
 
-// max-width breakpoints
+// max-width breakpoints 
 $wcpt_breakpoints = array(
   'tablet' => '1199',
   'phone' => '749',

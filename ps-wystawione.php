@@ -1,10 +1,10 @@
 <?php
 /*
 Plugin Name: Portalsluchu - My Account Extras 2
-Description: Dodaje endpoint "wystawione" do My Account i wyświetla listę produktów użytkownika.
+Description: ps-wystawione / Dodaje endpoint "wystawione" do My Account i wyświetla listę produktów użytkownika.
 Version: 0.1
 Author: Portalsluchu
-*/
+*/ 
 
 // 1) zarejestruj endpoint
 add_action('init', function() {

@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: portalsluchu – Formularz sprzedającego
-Description: Formularz do zgłaszania sprzedaży aparatu słuchowego, z obsługą kodu rabatowego oraz opłaty 10 zł przez WooCommerce.
+Description: portalsluchu-formularz-sprzedajacego / Formularz do zgłaszania sprzedaży aparatu słuchowego, z obsługą kodu rabatowego oraz opłaty 10 zł przez WooCommerce.
 Author: portalsluchu.pl
 Version: 1.1.0
 */
@@ -211,7 +211,7 @@ function ps_handle_listing_fee() {
         // darmowe zgłoszenie — nic nie dodajemy
         return;
     }
-
+ 
     // ID produktu reprezentującego opłatę za wystawienie (USTAW TUTAJ ID z admina)
     $fee_product_id = 1087; // <-- ZMIEŃ NA SWOJE ID jeśli inny
 

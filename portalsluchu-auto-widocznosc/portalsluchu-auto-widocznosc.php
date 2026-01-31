@@ -1,7 +1,7 @@
 <?php
-/*
+/* 
 Plugin Name: portalsluchu – automatyczna widoczność ogłoszeń + blokada bez audiogramu
-Description: Po opublikowaniu ogłoszenia ustawia widoczność na „Sklep i wyniki wyszukiwania”, blokuje publikację bez audiogramu i zmienia napis przy przycisku audiogramu dla nowych modeli.
+Description: portalsluchu-auto-widocznosc / Po opublikowaniu ogłoszenia ustawia widoczność na „Sklep i wyniki wyszukiwania”, blokuje publikację bez audiogramu i zmienia napis przy przycisku audiogramu dla nowych modeli.
 Version: 2.1
 Author: portalsluchu
 */
@@ -41,17 +41,45 @@ function portalsluchu_product_has_audiogram( $product_id ) {
  *
  * save_post_product z priorytetem 99 – meta audiogramu jest już wtedy zapisana.
  */
+
+function portalsluchu_force_catalog_visible( $product_id ) {
+    if ( ! function_exists( 'wc_get_product' ) ) {
+        return;
+    }
+
+    $product = wc_get_product( $product_id );
+    if ( ! $product ) {
+        return;
+    }
+
+    // 1) WooCommerce setter
+    $product->set_catalog_visibility( 'visible' );
+    $product->save();
+
+    // 2) Hard reset terminów product_visibility (pewniejsze)
+    if ( taxonomy_exists( 'product_visibility' ) ) {
+        $exclude = array( 'exclude-from-catalog', 'exclude-from-search' );
+
+        // pobierz aktualne termy
+        $terms = wp_get_object_terms( $product_id, 'product_visibility', array( 'fields' => 'names' ) );
+        if ( ! is_wp_error( $terms ) ) {
+            // usuń exclude*
+            $terms = array_values( array_diff( $terms, $exclude ) );
+            // ustaw z powrotem
+            wp_set_object_terms( $product_id, $terms, 'product_visibility', false );
+        }
+    }
+
+    // 3) wyczyść cache
+    wc_delete_product_transients( $product_id );
+}
+
 function portalsluchu_handle_product_save( $post_id, $post, $update ) {
     if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
         return;
     }
 
     if ( $post->post_type !== 'product' ) {
-        return;
-    }
-
-    // Pomijamy produkt–opłatę
-    if ( (int) $post_id === 921 ) {
         return;
     }
 
@@ -92,7 +120,8 @@ function portalsluchu_handle_product_save( $post_id, $post, $update ) {
     if ( function_exists( 'wc_get_product' ) ) {
         $product = wc_get_product( $post_id );
         if ( $product ) {
-            $product->set_catalog_visibility( 'visible' );
+            portalsluchu_force_catalog_visible( $post_id );   // w save_post
+            portalsluchu_force_catalog_visible( $post->ID );  // w transition_post_status
             $product->save();
         }
     }
@@ -164,22 +193,29 @@ function portalsluchu_change_audiogram_button_label() {
 }
 add_action( 'admin_footer-post.php', 'portalsluchu_change_audiogram_button_label' );
 
-/**
- * Podmiana tekstu zachęty na przycisk wystawiania aparatu dla zalogowanych.
- */
-add_filter( 'the_content', function( $content ) {
-    // Sprawdzamy, czy użytkownik jest zalogowany
-    if ( is_user_logged_in() ) {
-        
-        // Szukamy tekstu, który jest obecnie w Breakdance
-        $stary_tekst = 'Formularz wystawienia aparatu będzie dostępny wyłącznie po zalogowaniu. <br>Zachęcamy do utworzenia konta lub zalogowania się.';
-        
-        // Tworzymy pomarańczowy przycisk (CTA) dla zalogowanego użytkownika
-        $nowy_link = '<br><a href="/wystaw-aparat-sluchowy-na-sprzedaz/" class="button" style="background-color: #ff8c00; color: #fff; padding: 12px 24px; border-radius: 5px; text-decoration: none; font-weight: bold; display: inline-block; margin: 15px 0; border: none; cursor: pointer;">
-                        Wystaw aparat słuchowy na sprzedaż →
-                      </a>';
 
-        $content = str_replace( $stary_tekst, $nowy_link, $content );
+add_action( 'transition_post_status', function( $new_status, $old_status, $post ) {
+
+    if ( ! $post || $post->post_type !== 'product' ) {
+        return;
     }
-    return $content;
-}, 100 );
+
+    if ( $new_status !== 'publish' ) {
+        return;
+    }
+
+    // tylko ogłoszenia
+    $model = get_post_meta( $post->ID, 'hearing_aid_model', true );
+    if ( empty( $model ) ) {
+        return;
+    }
+
+    if ( function_exists( 'wc_get_product' ) ) {
+        $product = wc_get_product( $post->ID );
+        if ( $product ) {
+            $product->set_catalog_visibility( 'visible' ); // "Sklep i wyniki wyszukiwania"
+            $product->save();
+        }
+    }
+
+}, 50, 3 );

@@ -1,10 +1,10 @@
 <?php
 /**
  * Plugin Name: portalsluchu – Formularz kupującego
- * Description: Formularz „KUP” na karcie produktu. Po wyborze opcji (pakiet startowy, sposób otrzymania, gwarancja) dane są zapisywane w sesji WooCommerce, produkt trafia do koszyka, a na etapie /kasa doliczane są opłaty. Wylicza też strefę dojazdu na podstawie kodu pocztowego.
+ * Description: portalsluchu-formularz-kupujacego / Formularz „KUP” na karcie produktu. Po wyborze opcji (pakiet startowy, sposób otrzymania, gwarancja) dane są zapisywane w sesji WooCommerce, produkt trafia do koszyka, a na etapie /kasa doliczane są opłaty. Wylicza też strefę dojazdu na podstawie kodu pocztowego.
  * Author: portalsluchu.pl
  * Version: 1.3.0
- */
+ */ 
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;

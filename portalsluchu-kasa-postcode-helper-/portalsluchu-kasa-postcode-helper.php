@@ -1,10 +1,10 @@
 <?php
 /**
  * Plugin Name: portalsluchu – Kod pocztowy na stronie "Kasa"
- * Description: Auto-formatowanie kodu pocztowego (01-000) + natychmiastowe wyliczanie strefy dojazdu na stronie zamówienia (/kasa). Wymaga wtyczki "portalsluchu – Strefy dojazdu".
+ * Description: portalsluchu-kasa-postcode-helper / Auto-formatowanie kodu pocztowego (01-000) + natychmiastowe wyliczanie strefy dojazdu na stronie zamówienia (/kasa). Wymaga wtyczki "portalsluchu – Strefy dojazdu".
  * Author: portalsluchu.pl
  * Version: 1.0.0
- */
+ */ 
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;

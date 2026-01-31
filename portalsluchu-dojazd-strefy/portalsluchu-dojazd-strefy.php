@@ -1,10 +1,10 @@
 <?php
 /*
 Plugin Name: portalsluchu – dojazd strefy (kody pocztowe)
-Description: Dodaje opłatę za dojazd na podstawie kodu pocztowego klienta (4 strefy z plików TXT + 5. strefa domyślna).
+Description: portalsluchu-dojazd-strefy / Dodaje opłatę za dojazd na podstawie kodu pocztowego klienta (4 strefy z plików TXT + 5. strefa domyślna).
 Author: portalsluchu.pl
 Version: 1.0.0
-*/
+*/ 
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;

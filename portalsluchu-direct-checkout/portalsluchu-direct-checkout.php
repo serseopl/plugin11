@@ -1,7 +1,7 @@
 <?php
-/**
+/** 
  * Plugin Name: portalsluchu – Bezpośrednio na stronę "Kasa"
- * Description: Po dodaniu produktu do koszyka przekierowuje użytkownika od razu na stronę zamówienia (/kasa).
+ * Description: portalsluchu-direct-checkout / Po dodaniu produktu do koszyka przekierowuje użytkownika od razu na stronę zamówienia (/kasa).
  * Author: portalsluchu.pl
  * Version: 1.0.0
  */

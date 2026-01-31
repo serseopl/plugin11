@@ -4,11 +4,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * KONFIGURACJA
+ * KONFIGURACJA 
  * --------------------------------------------------
  */
-$listing_fee_product_id = 921; // produkt "Opłata za wystawienie ogłoszenia"
-$free_code              = 'zglaszamzazero'; // tajny kod rabatowy – nie pokazujemy go w UI
+$listing_fee_product_id = 1087; // produkt "Opłata za wystawienie ogłoszenia"
+$free_code              = 'zazero'; // tajny kod rabatowy – nie pokazujemy go w UI
 
 $success_msg = '';
 $error_msg   = '';
@@ -94,6 +94,9 @@ if (
 
                 $payment_status = ( $submission_mode === 'code' ) ? 'coupon' : 'pending_payment';
                 update_post_meta( $product_id, 'listing_payment_status', $payment_status );
+                if ( $payment_status === 'pending_payment' ) {
+    update_post_meta( $product_id, 'listing_pending_created_at', time() );
+}
 
                 $attachment_ids = array();
 
@@ -296,7 +299,7 @@ if (
   var codeInput   = document.getElementById('listing_code');
   var codeStatus  = document.getElementById('listing_code_status');
   var submitBtn   = document.getElementById('submit_btn');
-  var payBtn      = document.getElementById('pay_btn');
+  var payBtn      = document.getElementById('ps-go-to-fee');
   var modeField   = document.getElementById('submission_mode');
   var loadingText = document.getElementById('loading_text');
 
@@ -309,20 +312,17 @@ if (
     codeInput.addEventListener('input', function() {
       var value = codeInput.value.trim().toLowerCase();
 
-      if (!value) {
-        codeStatus.textContent = '';
-        if (submitBtn) {
-          submitBtn.style.display = 'none';
-        }
-        if (payBtn) {
-          payBtn.disabled = false;
-        }
-        return;
-      }
+if (!value) {
+  codeStatus.textContent = '';
+  if (submitBtn) submitBtn.style.display = 'none';
+  if (payBtn) payBtn.style.display = 'inline-block';
+  return;
+}
 
       if (value === validCode) {
         codeStatus.textContent = 'Dziękujemy, kod przyjęty.';
         codeStatus.style.color = 'green';
+        if (payBtn) payBtn.style.display = 'none';
         if (submitBtn) {
           submitBtn.style.display = 'inline-block';
         }
@@ -332,6 +332,7 @@ if (
       } else {
         codeStatus.textContent = 'Kod nie pasuje.';
         codeStatus.style.color = 'red';
+        if (payBtn) payBtn.style.display = 'inline-block';
         if (submitBtn) {
           submitBtn.style.display = 'none';
         }

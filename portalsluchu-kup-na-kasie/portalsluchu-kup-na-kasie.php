@@ -1,14 +1,14 @@
 <?php
 /**
  * Plugin Name: portalsluchu – Zakup na stronie "Kasa"
- * Description: Wybór sposobu otrzymania aparatu, pakietu startowego i gwarancji bezpośrednio na stronie /kasa. Dolicza opłaty na podstawie adresu (dojazd) lub wybranego salonu. Nie działa przy samej opłacie 10 zł za wystawienie ogłoszenia.
+ * Description: portalsluchu-kup-na-kasie / Wybór sposobu otrzymania aparatu, pakietu startowego i gwarancji bezpośrednio na stronie /kasa. Dolicza opłaty na podstawie adresu (dojazd) lub wybranego salonu. Nie działa przy samej opłacie 10 zł za wystawienie ogłoszenia.
  * Author: portalsluchu.pl
  * Version: 1.2.1
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
-}
+} 
 
 // ID produktu WooCommerce reprezentującego opłatę 10 zł za wystawienie ogłoszenia
 if ( ! defined( 'PORTALSLUCHU_LISTING_FEE_PRODUCT_ID' ) ) {

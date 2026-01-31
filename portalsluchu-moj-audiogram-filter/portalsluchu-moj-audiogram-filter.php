@@ -1,10 +1,10 @@
 <?php
 /**
  * Plugin Name: portalsluchu – Filtr ofert wg mojego audiogramu
- * Description: Dodaje shortcode [portalsluchu_product_table_filtered id="..."] z checkboxem „Pokaż tylko aparaty zgodne z moim audiogramem” i filtruje wyniki tabeli (WC Product Table Lite) na podstawie meta 'serseo_audiogram' (produkt) oraz 'serseo_user_audiogram' (użytkownik).
+ * Description: portalsluchu-moj-audiogram-filter / Dodaje shortcode [portalsluchu_product_table_filtered id="..."] z checkboxem „Pokaż tylko aparaty zgodne z moim audiogramem” i filtruje wyniki tabeli (WC Product Table Lite) na podstawie meta 'serseo_audiogram' (produkt) oraz 'serseo_user_audiogram' (użytkownik).
  * Author: portalsluchu.pl
  * Version: 1.1.1
- */
+ */ 
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;

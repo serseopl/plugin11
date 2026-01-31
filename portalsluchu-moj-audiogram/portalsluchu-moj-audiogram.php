@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: portalsluchu – Mój audiogram (formularz + konto klienta)
- * Description: Formularz „Mój audiogram” dla zalogowanego użytkownika + opcja płatnego przepisania z obrazka (100 zł doliczane przy zamówieniu), osobna zakładka w „Moje konto” oraz edycja audiogramu w profilu użytkownika w panelu.
+ * Description: portalsluchu-moj-audiogram / Formularz „Mój audiogram” dla zalogowanego użytkownika + opcja płatnego przepisania z obrazka (100 zł doliczane przy zamówieniu), osobna zakładka w „Moje konto” oraz edycja audiogramu w profilu użytkownika w panelu.
  * Author: portalsluchu.pl
  * Version: 1.3.0
  */
@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-/**
+/** 
  * Cena usługi przepisania audiogramu z obrazka.
  */
 function portalsluchu_moj_audiogram_service_price() {
