@@ -99,11 +99,16 @@ function portalsluchu_moj_audiogram_render_form() {
 
     $frequencies = portalsluchu_moj_audiogram_get_frequencies();
 
-    // Odczyt aktualnych danych audiogramu użytkownika
-    $audiogram = get_user_meta( $user_id, 'serseo_user_audiogram', true );
-    if ( ! is_array( $audiogram ) ) {
-        $audiogram = array();
-    }
+// Odczyt aktualnych danych audiogramu użytkownika
+$audiogram_prawe = get_user_meta( $user_id, 'serseo_user_audiogram_prawe', true );
+if ( ! is_array( $audiogram_prawe ) ) {
+    $audiogram_prawe = array();
+}
+
+$audiogram_lewe = get_user_meta( $user_id, 'serseo_user_audiogram_lewe', true );
+if ( ! is_array( $audiogram_lewe ) ) {
+    $audiogram_lewe = array();
+}
 
     // Flaga usługi oraz załączony obrazek
     $service_requested = get_user_meta( $user_id, 'serseo_user_audiogram_service_requested', true );
@@ -115,24 +120,39 @@ function portalsluchu_moj_audiogram_render_form() {
          && isset( $_POST['portalsluchu_moj_audiogram_nonce'] )
          && wp_verify_nonce( $_POST['portalsluchu_moj_audiogram_nonce'], 'portalsluchu_moj_audiogram_save' ) ) {
 
-        // Zapis wartości z formularza
-        $new_audiogram = array();
+// Zapis wartości z formularza
+$new_audiogram_prawe = array();
+$new_audiogram_lewe  = array();
 
-        foreach ( $frequencies as $hz ) {
-            $hz_key = 'hz_' . $hz;
+foreach ( $frequencies as $hz ) {
+    $hz_key = 'hz_' . $hz;
 
-            $od = isset( $_POST[ $hz_key . '_od' ] ) ? trim( sanitize_text_field( $_POST[ $hz_key . '_od' ] ) ) : '';
-            $do = isset( $_POST[ $hz_key . '_do' ] ) ? trim( sanitize_text_field( $_POST[ $hz_key . '_do' ] ) ) : '';
+    $prawe_od = isset( $_POST[ $hz_key . '_prawe_od' ] ) ? trim( sanitize_text_field( $_POST[ $hz_key . '_prawe_od' ] ) ) : '';
+    $prawe_do = isset( $_POST[ $hz_key . '_prawe_do' ] ) ? trim( sanitize_text_field( $_POST[ $hz_key . '_prawe_do' ] ) ) : '';
 
-            if ( $od !== '' || $do !== '' ) {
-                $new_audiogram[ $hz ] = array(
-                    'od' => $od,
-                    'do' => $do,
-                );
-            }
-        }
+    $lewe_od  = isset( $_POST[ $hz_key . '_lewe_od' ] ) ? trim( sanitize_text_field( $_POST[ $hz_key . '_lewe_od' ] ) ) : '';
+    $lewe_do  = isset( $_POST[ $hz_key . '_lewe_do' ] ) ? trim( sanitize_text_field( $_POST[ $hz_key . '_lewe_do' ] ) ) : '';
 
-        update_user_meta( $user_id, 'serseo_user_audiogram', $new_audiogram );
+    if ( $prawe_od !== '' || $prawe_do !== '' ) {
+        $new_audiogram_prawe[ $hz ] = array(
+            'od' => $prawe_od,
+            'do' => $prawe_do,
+        );
+    }
+
+    if ( $lewe_od !== '' || $lewe_do !== '' ) {
+        $new_audiogram_lewe[ $hz ] = array(
+            'od' => $lewe_od,
+            'do' => $lewe_do,
+        );
+    }
+}
+
+update_user_meta( $user_id, 'serseo_user_audiogram_prawe', $new_audiogram_prawe );
+update_user_meta( $user_id, 'serseo_user_audiogram_lewe',  $new_audiogram_lewe );
+
+$audiogram_prawe = $new_audiogram_prawe;
+$audiogram_lewe  = $new_audiogram_lewe;
 
         // Obsługa checkboxa usługi
         $service_flag = isset( $_POST['portalsluchu_audiogram_service'] ) ? '1' : '0';
@@ -210,44 +230,95 @@ function portalsluchu_moj_audiogram_render_form() {
       <h3>Mój audiogram</h3>
       <p>Wpisz zakresy słyszenia (w dB) dla poszczególnych częstotliwości. Jeśli nie znasz dokładnych wartości, możesz pominąć wybrane pola.</p>
 
-      <table class="widefat striped" style="max-width:600px;">
-        <thead>
-          <tr>
-            <th>Częstotliwość (Hz)</th>
-            <th>Od (dB)</th>
-            <th>Do (dB)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ( $frequencies as $hz ) :
-            $row    = isset( $audiogram[ $hz ] ) ? $audiogram[ $hz ] : array();
-            $val_od = isset( $row['od'] ) ? $row['od'] : '';
-            $val_do = isset( $row['do'] ) ? $row['do'] : '';
-          ?>
-            <tr>
-              <td><?php echo esc_html( $hz ); ?></td>
-              <td>
-                <input
-                  type="number"
-                  step="1"
-                  name="<?php echo esc_attr( 'hz_' . $hz . '_od' ); ?>"
-                  value="<?php echo esc_attr( $val_od ); ?>"
-                  style="width:100%;"
-                >
-              </td>
-              <td>
-                <input
-                  type="number"
-                  step="1"
-                  name="<?php echo esc_attr( 'hz_' . $hz . '_do' ); ?>"
-                  value="<?php echo esc_attr( $val_do ); ?>"
-                  style="width:100%;"
-                >
-              </td>
-            </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
+     <!-- PRAWE UCHO -->
+<h4 style="margin-top:0; padding:10px 12px; background:#ffe6e6; border-left:6px solid #cc0000;">
+  PRAWE UCHO
+</h4>
+
+<table class="widefat striped" style="max-width:600px; border:1px solid #ffb3b3;">
+  <thead>
+    <tr>
+      <th>Częstotliwość (Hz)</th>
+      <th>Od (dB)</th>
+      <th>Do (dB)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <?php foreach ( $frequencies as $hz ) :
+      $row    = isset( $audiogram_prawe[ $hz ] ) ? $audiogram_prawe[ $hz ] : array();
+      $val_od = isset( $row['od'] ) ? $row['od'] : '';
+      $val_do = isset( $row['do'] ) ? $row['do'] : '';
+    ?>
+      <tr>
+        <td><?php echo esc_html( $hz ); ?></td>
+        <td>
+          <input
+            type="number"
+            step="1"
+            name="<?php echo esc_attr( 'hz_' . $hz . '_prawe_od' ); ?>"
+            value="<?php echo esc_attr( $val_od ); ?>"
+            style="width:100%;"
+          >
+        </td>
+        <td>
+          <input
+            type="number"
+            step="1"
+            name="<?php echo esc_attr( 'hz_' . $hz . '_prawe_do' ); ?>"
+            value="<?php echo esc_attr( $val_do ); ?>"
+            style="width:100%;"
+          >
+        </td>
+      </tr>
+    <?php endforeach; ?>
+  </tbody>
+</table>
+
+<hr style="margin:20px 0;">
+
+<!-- LEWE UCHO -->
+<h4 style="margin-top:0; padding:10px 12px; background:#e6f0ff; border-left:6px solid #0066cc;">
+  LEWE UCHO
+</h4>
+
+<table class="widefat striped" style="max-width:600px; border:1px solid #b3d1ff;">
+  <thead>
+    <tr>
+      <th>Częstotliwość (Hz)</th>
+      <th>Od (dB)</th>
+      <th>Do (dB)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <?php foreach ( $frequencies as $hz ) :
+      $row    = isset( $audiogram_lewe[ $hz ] ) ? $audiogram_lewe[ $hz ] : array();
+      $val_od = isset( $row['od'] ) ? $row['od'] : '';
+      $val_do = isset( $row['do'] ) ? $row['do'] : '';
+    ?>
+      <tr>
+        <td><?php echo esc_html( $hz ); ?></td>
+        <td>
+          <input
+            type="number"
+            step="1"
+            name="<?php echo esc_attr( 'hz_' . $hz . '_lewe_od' ); ?>"
+            value="<?php echo esc_attr( $val_od ); ?>"
+            style="width:100%;"
+          >
+        </td>
+        <td>
+          <input
+            type="number"
+            step="1"
+            name="<?php echo esc_attr( 'hz_' . $hz . '_lewe_do' ); ?>"
+            value="<?php echo esc_attr( $val_do ); ?>"
+            style="width:100%;"
+          >
+        </td>
+      </tr>
+    <?php endforeach; ?>
+  </tbody>
+</table>
 
       <hr style="margin:20px 0;">
 
@@ -389,10 +460,15 @@ function portalsluchu_moj_audiogram_show_profile_fields( $user ) {
 
     $frequencies = portalsluchu_moj_audiogram_get_frequencies();
 
-    $audiogram = get_user_meta( $user->ID, 'serseo_user_audiogram', true );
-    if ( ! is_array( $audiogram ) ) {
-        $audiogram = array();
-    }
+$audiogram_prawe = get_user_meta( $user->ID, 'serseo_user_audiogram_prawe', true );
+if ( ! is_array( $audiogram_prawe ) ) {
+    $audiogram_prawe = array();
+}
+
+$audiogram_lewe = get_user_meta( $user->ID, 'serseo_user_audiogram_lewe', true );
+if ( ! is_array( $audiogram_lewe ) ) {
+    $audiogram_lewe = array();
+}
 
     $service_requested = get_user_meta( $user->ID, 'serseo_user_audiogram_service_requested', true );
     $image_id          = get_user_meta( $user->ID, 'serseo_user_audiogram_image_id', true );
@@ -479,30 +555,52 @@ function portalsluchu_moj_audiogram_save_profile_fields( $user_id ) {
         return;
     }
 
-    if ( ! isset( $_POST['portalsluchu_admin_hz_125_od'] ) && ! isset( $_POST['portalsluchu_admin_hz_125_do'] ) ) {
-        // Zakładamy, że jeśli nie ma nawet pierwszej częstotliwości w POST, to formularz nie był użyty.
-        return;
+if (
+    ! isset( $_POST['portalsluchu_admin_hz_125_prawe_od'] ) &&
+    ! isset( $_POST['portalsluchu_admin_hz_125_prawe_do'] ) &&
+    ! isset( $_POST['portalsluchu_admin_hz_125_lewe_od'] ) &&
+    ! isset( $_POST['portalsluchu_admin_hz_125_lewe_do'] )
+) {
+    // Zakładamy, że jeśli nie ma nawet pierwszej częstotliwości w POST, to formularz nie był użyty.
+    return;
+}
+$frequencies         = portalsluchu_moj_audiogram_get_frequencies();
+$new_audiogram_prawe  = array();
+$new_audiogram_lewe   = array();
+
+foreach ( $frequencies as $hz ) {
+    $prawe_od_key = 'portalsluchu_admin_hz_' . $hz . '_prawe_od';
+    $prawe_do_key = 'portalsluchu_admin_hz_' . $hz . '_prawe_do';
+
+    $lewe_od_key  = 'portalsluchu_admin_hz_' . $hz . '_lewe_od';
+    $lewe_do_key  = 'portalsluchu_admin_hz_' . $hz . '_lewe_do';
+
+    $prawe_od = isset( $_POST[ $prawe_od_key ] ) ? trim( sanitize_text_field( $_POST[ $prawe_od_key ] ) ) : '';
+    $prawe_do = isset( $_POST[ $prawe_do_key ] ) ? trim( sanitize_text_field( $_POST[ $prawe_do_key ] ) ) : '';
+
+    $lewe_od  = isset( $_POST[ $lewe_od_key ] ) ? trim( sanitize_text_field( $_POST[ $lewe_od_key ] ) ) : '';
+    $lewe_do  = isset( $_POST[ $lewe_do_key ] ) ? trim( sanitize_text_field( $_POST[ $lewe_do_key ] ) ) : '';
+
+    if ( $prawe_od !== '' || $prawe_do !== '' ) {
+        $new_audiogram_prawe[ $hz ] = array(
+            'od' => $prawe_od,
+            'do' => $prawe_do,
+        );
     }
 
-    $frequencies    = portalsluchu_moj_audiogram_get_frequencies();
-    $new_audiogram  = array();
-
-    foreach ( $frequencies as $hz ) {
-        $od_key = 'portalsluchu_admin_hz_' . $hz . '_od';
-        $do_key = 'portalsluchu_admin_hz_' . $hz . '_do';
-
-        $od = isset( $_POST[ $od_key ] ) ? trim( sanitize_text_field( $_POST[ $od_key ] ) ) : '';
-        $do = isset( $_POST[ $do_key ] ) ? trim( sanitize_text_field( $_POST[ $do_key ] ) ) : '';
-
-        if ( $od !== '' || $do !== '' ) {
-            $new_audiogram[ $hz ] = array(
-                'od' => $od,
-                'do' => $do,
-            );
-        }
+    if ( $lewe_od !== '' || $lewe_do !== '' ) {
+        $new_audiogram_lewe[ $hz ] = array(
+            'od' => $lewe_od,
+            'do' => $lewe_do,
+        );
     }
+}
 
-    update_user_meta( $user_id, 'serseo_user_audiogram', $new_audiogram );
+update_user_meta( $user_id, 'serseo_user_audiogram_prawe', $new_audiogram_prawe );
+update_user_meta( $user_id, 'serseo_user_audiogram_lewe',  $new_audiogram_lewe );
+
+$audiogram_prawe = $new_audiogram_prawe;
+$audiogram_lewe  = $new_audiogram_lewe;
 
     $service_flag = isset( $_POST['portalsluchu_admin_audiogram_service'] ) ? '1' : '0';
     update_user_meta( $user_id, 'serseo_user_audiogram_service_requested', $service_flag );
