@@ -120,7 +120,10 @@ if ( ! is_array( $audiogram_lewe ) ) {
          && isset( $_POST['portalsluchu_moj_audiogram_nonce'] )
          && wp_verify_nonce( $_POST['portalsluchu_moj_audiogram_nonce'], 'portalsluchu_moj_audiogram_save' ) ) {
 
-// Zapis wartości z formularza
+// Obsługa checkboxa usługi (potrzebne do walidacji backend)
+$service_flag = isset( $_POST['portalsluchu_audiogram_service'] ) ? '1' : '0';
+
+         // Zapis wartości z formularza
 $new_audiogram_prawe = array();
 $new_audiogram_lewe  = array();
 
@@ -148,16 +151,29 @@ foreach ( $frequencies as $hz ) {
     }
 }
 
-update_user_meta( $user_id, 'serseo_user_audiogram_prawe', $new_audiogram_prawe );
-update_user_meta( $user_id, 'serseo_user_audiogram_lewe',  $new_audiogram_lewe );
+// WALIDACJA backend (PHP): jeśli oba ucha puste i brak usługi -> blokuj
+if ( empty( $new_audiogram_prawe ) && empty( $new_audiogram_lewe ) && $service_flag !== '1' ) {
+    $error_msg = 'Proszę o uzupełnienie audiogramu (prawe i/lub lewe ucho) lub zaznaczenie opcji przepisania danych za 100 zł.';
+}
 
-$audiogram_prawe = $new_audiogram_prawe;
-$audiogram_lewe  = $new_audiogram_lewe;
+// WALIDACJA backend (PHP): jeśli chce usługę, to musi być plik (nowy albo już zapisany)
+$has_existing_file = ! empty( $image_id );
+$has_new_file      = ! empty( $_FILES['portalsluchu_audiogram_image']['name'] );
 
-        // Obsługa checkboxa usługi
-        $service_flag = isset( $_POST['portalsluchu_audiogram_service'] ) ? '1' : '0';
-        update_user_meta( $user_id, 'serseo_user_audiogram_service_requested', $service_flag );
-        $service_requested = $service_flag;
+if ( ! $error_msg && $service_flag === '1' && ! $has_existing_file && ! $has_new_file ) {
+    $error_msg = 'Aby skorzystać z tej opcji, najpierw załącz czytelne zdjęcie audiogramu.';
+}
+
+if ( ! $error_msg ) {
+    update_user_meta( $user_id, 'serseo_user_audiogram_prawe', $new_audiogram_prawe );
+    update_user_meta( $user_id, 'serseo_user_audiogram_lewe',  $new_audiogram_lewe );
+
+    $audiogram_prawe = $new_audiogram_prawe;
+    $audiogram_lewe  = $new_audiogram_lewe;
+
+    update_user_meta( $user_id, 'serseo_user_audiogram_service_requested', $service_flag );
+    $service_requested = $service_flag;
+}
 
         // Obsługa uploadu obrazka (jeśli jest)
         if ( ! empty( $_FILES['portalsluchu_audiogram_image']['name'] ) ) {
