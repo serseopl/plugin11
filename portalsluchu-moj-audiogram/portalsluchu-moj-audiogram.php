@@ -100,12 +100,12 @@ function portalsluchu_moj_audiogram_render_form() {
     $frequencies = portalsluchu_moj_audiogram_get_frequencies();
 
 // Odczyt aktualnych danych audiogramu użytkownika
-$audiogram_prawe = get_user_meta( $user_id, 'serseo_user_audiogram_prawe', true );
+$audiogram_prawe = get_user_meta( $user_id, 'serseo_user_audiogram_prawe_db', true );
 if ( ! is_array( $audiogram_prawe ) ) {
     $audiogram_prawe = array();
 }
 
-$audiogram_lewe = get_user_meta( $user_id, 'serseo_user_audiogram_lewe', true );
+$audiogram_lewe = get_user_meta( $user_id, 'serseo_user_audiogram_lewe_db', true );
 if ( ! is_array( $audiogram_lewe ) ) {
     $audiogram_lewe = array();
 }
@@ -130,24 +130,15 @@ $new_audiogram_lewe  = array();
 foreach ( $frequencies as $hz ) {
     $hz_key = 'hz_' . $hz;
 
-    $prawe_od = isset( $_POST[ $hz_key . '_prawe_od' ] ) ? trim( sanitize_text_field( $_POST[ $hz_key . '_prawe_od' ] ) ) : '';
-    $prawe_do = isset( $_POST[ $hz_key . '_prawe_do' ] ) ? trim( sanitize_text_field( $_POST[ $hz_key . '_prawe_do' ] ) ) : '';
+    $prawe_db = isset( $_POST[ $hz_key . '_prawe_db' ] ) ? trim( sanitize_text_field( $_POST[ $hz_key . '_prawe_db' ] ) ) : '';
+    $lewe_db  = isset( $_POST[ $hz_key . '_lewe_db' ] ) ? trim( sanitize_text_field( $_POST[ $hz_key . '_lewe_db' ] ) ) : '';
 
-    $lewe_od  = isset( $_POST[ $hz_key . '_lewe_od' ] ) ? trim( sanitize_text_field( $_POST[ $hz_key . '_lewe_od' ] ) ) : '';
-    $lewe_do  = isset( $_POST[ $hz_key . '_lewe_do' ] ) ? trim( sanitize_text_field( $_POST[ $hz_key . '_lewe_do' ] ) ) : '';
-
-    if ( $prawe_od !== '' || $prawe_do !== '' ) {
-        $new_audiogram_prawe[ $hz ] = array(
-            'od' => $prawe_od,
-            'do' => $prawe_do,
-        );
+    if ( $prawe_db !== '' ) {
+        $new_audiogram_prawe[ $hz ] = $prawe_db;
     }
 
-    if ( $lewe_od !== '' || $lewe_do !== '' ) {
-        $new_audiogram_lewe[ $hz ] = array(
-            'od' => $lewe_od,
-            'do' => $lewe_do,
-        );
+    if ( $lewe_db !== '' ) {
+        $new_audiogram_lewe[ $hz ] = $lewe_db;
     }
 }
 
@@ -165,8 +156,8 @@ if ( ! $error_msg && $service_flag === '1' && ! $has_existing_file && ! $has_new
 }
 
 if ( ! $error_msg ) {
-    update_user_meta( $user_id, 'serseo_user_audiogram_prawe', $new_audiogram_prawe );
-    update_user_meta( $user_id, 'serseo_user_audiogram_lewe',  $new_audiogram_lewe );
+update_user_meta( $user_id, 'serseo_user_audiogram_prawe_db', $new_audiogram_prawe );
+update_user_meta( $user_id, 'serseo_user_audiogram_lewe_db',  $new_audiogram_lewe );
 
     $audiogram_prawe = $new_audiogram_prawe;
     $audiogram_lewe  = $new_audiogram_lewe;
@@ -663,8 +654,8 @@ foreach ( $frequencies as $hz ) {
     }
 }
 
-update_user_meta( $user_id, 'serseo_user_audiogram_prawe', $new_audiogram_prawe );
-update_user_meta( $user_id, 'serseo_user_audiogram_lewe',  $new_audiogram_lewe );
+update_user_meta( $user_id, 'serseo_user_audiogram_prawe_db', $new_audiogram_prawe );
+update_user_meta( $user_id, 'serseo_user_audiogram_lewe_db',  $new_audiogram_lewe );
 
 
     $service_flag = isset( $_POST['portalsluchu_admin_audiogram_service'] ) ? '1' : '0';
