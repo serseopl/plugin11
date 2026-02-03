@@ -175,8 +175,8 @@ if ( ! $error_msg ) {
     $service_requested = $service_flag;
 }
 
-        // Obsługa uploadu obrazka (jeśli jest)
-        if ( ! empty( $_FILES['portalsluchu_audiogram_image']['name'] ) ) {
+// Obsługa uploadu obrazka (jeśli jest)
+if ( ! $error_msg && ! empty( $_FILES['portalsluchu_audiogram_image']['name'] ) ) {
             require_once ABSPATH . 'wp-admin/includes/file.php';
             require_once ABSPATH . 'wp-admin/includes/media.php';
             require_once ABSPATH . 'wp-admin/includes/image.php';
