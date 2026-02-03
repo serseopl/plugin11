@@ -82,13 +82,13 @@ function portalsluchu_load_zone_codes( $filename ) {
 function portalsluchu_get_dojazd_for_postcode( $postcode ) {
     $postcode = portalsluchu_normalize_postcode( $postcode );
 
-    $prices = array(
-        1 => 0.0,
-        2 => 150.0,
-        3 => 300.0,
-        4 => 500.0,
-        5 => 550.0, // jeśli nie znaleziono w żadnej strefie
-    );
+$prices = array(
+    1 => 100.0,
+    2 => 200.0,
+    3 => 300.0,
+    4 => 400.0,
+    5 => 450.0, // jeśli nie znaleziono w żadnej strefie
+);
 
     $plugin_dir = plugin_dir_path( __FILE__ );
     $kody_dir   = trailingslashit( $plugin_dir . 'kody' );
@@ -264,3 +264,28 @@ function portalsluchu_dojazd_metabox_cb( $post ) {
     echo '<p><strong>Strefa:</strong><br>' . ( $zone ? intval( $zone ) : '-' ) . '</p>';
     echo '<p><strong>Cena dojazdu:</strong><br>' . wc_price( $price ) . '</p>';
 }
+// Kompatybilność z innymi modułami (kupujący/kasa)
+if ( ! function_exists( 'portalsluchu_dojazd_calculate_for_postcode' ) ) {
+    function portalsluchu_dojazd_calculate_for_postcode( $postcode ) {
+        return portalsluchu_get_dojazd_for_postcode( $postcode );
+    }
+}
+/**
+ * AJAX: zwraca strefę i cenę dojazdu dla podanego kodu pocztowego.
+ * Używane do podglądu "na żywo" (produkt / kasa).
+ */
+function portalsluchu_ajax_dojazd_info() {
+    $postcode = isset( $_POST['postcode'] ) ? sanitize_text_field( wp_unslash( $_POST['postcode'] ) ) : '';
+    $info     = portalsluchu_get_dojazd_for_postcode( $postcode );
+
+    $zone  = isset( $info['zone'] ) ? (int) $info['zone'] : 5;
+    $price = isset( $info['price'] ) ? (float) $info['price'] : 0.0;
+
+    wp_send_json_success( array(
+        'zone'            => $zone,
+        'price'           => $price,
+        'price_formatted' => function_exists('wc_price') ? wc_price( $price ) : (string) $price,
+    ) );
+}
+add_action( 'wp_ajax_portalsluchu_dojazd_info', 'portalsluchu_ajax_dojazd_info' );
+add_action( 'wp_ajax_nopriv_portalsluchu_dojazd_info', 'portalsluchu_ajax_dojazd_info' );

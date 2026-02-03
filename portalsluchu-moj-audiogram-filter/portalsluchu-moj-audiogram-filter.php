@@ -78,14 +78,45 @@ function portalsluchu_product_table_filtered_shortcode( $atts ) {
 
     $checked = ( isset( $_GET['audiogram_filter'] ) && $_GET['audiogram_filter'] === '1' );
 
+
+
+// Jeśli user zaznaczył filtr, ale nie ma uzupełnionego audiogramu – pokaż komunikat + link
+$show_missing_audiogram_notice = false;
+
+if ( $checked ) {
+    if ( ! is_user_logged_in() ) {
+        $show_missing_audiogram_notice = true;
+    } else {
+        $user_id    = get_current_user_id();
+        $user_audio = get_user_meta( $user_id, 'serseo_user_audiogram', true );
+        if ( ! is_array( $user_audio ) || empty( $user_audio ) ) {
+            $show_missing_audiogram_notice = true;
+        }
+    }
+}
+
+
+
     ob_start();
-    ?>
-    <div class="portalsluchu-audiogram-filter-box" style="margin-bottom:15px;">
-        <label>
-            <input type="checkbox" id="portalsluchu_audiogram_filter_checkbox" <?php checked( $checked ); ?>>
-            Pokaż tylko aparaty zgodne z moim audiogramem
-        </label>
+if ( $show_missing_audiogram_notice ) : ?>
+<div class="woocommerce-info" style="margin-bottom:12px;">
+    <div style="text-align:center; color:#b32d2e; font-weight:700; margin-bottom:6px;">
+        UWAGA
     </div>
+    Wykryliśmy, że nie masz jeszcze uzupełnionego audiogramu. Aby filtrować oferty według zgodności,
+    uzupełnij swój audiogram:<br />
+   <div style="text-align:center;">
+  <a style="font-size:24px; text-decoration:none;" href="moje-konto/moj-audiogram/">>>> Wypełnij audiogram <<<</a>.
+</div>
+</div>
+<?php endif; ?>
+
+<div class="portalsluchu-audiogram-filter-box" style="margin-bottom:15px;">
+    <label>
+        <input type="checkbox" id="portalsluchu_audiogram_filter_checkbox" <?php checked( $checked ); ?>>
+        Pokaż tylko aparaty zgodne z moim audiogramem
+    </label>
+</div>
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
