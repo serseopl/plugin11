@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name: portalsluchu – Filtr ofert wg mojego audiogramu
- * Description: portalsluchu-moj-audiogram-filter / Dodaje shortcode [portalsluchu_product_table_filtered id="..."] z checkboxem „Pokaż tylko aparaty zgodne z moim audiogramem” i filtruje wyniki tabeli (WC Product Table Lite) na podstawie meta 'serseo_audiogram' (produkt) oraz 'serseo_user_audiogram' (użytkownik).
+ * Description: portalsluchu-moj-audiogram-filter / Dodaje shortcode [portalsluchu_product_table_filtered id="..."] z checkboxem „Pokaż tylko aparaty zgodne z moim audiogramem" i filtruje wyniki tabeli (WC Product Table Lite) na podstawie meta 'serseo_audiogram' (produkt) oraz 'serseo_user_audiogram_prawe_db' i 'serseo_user_audiogram_lewe_db' (użytkownik).
  * Author: portalsluchu.pl
- * Version: 1.1.1
+ * Version: 1.2.0
  */ 
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -11,18 +11,68 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Produkt: $product_audio[hz]['od'|'do']  (zakres dB dla danej częstotliwości)
- * Użytkownik: $user_audio[hz] = poziom (dB) (jedna wartość, bierzemy bardziej restrykcyjne ucho)
+ * Pobiera audiogram użytkownika z meta dla obu uszu.
+ * Dla tej samej częstotliwości (Hz), jeśli istnieją wartości dla obu uszu,
+ * jako bardziej restrykcyjną przyjmujemy max(dB).
+ *
+ * @param int $user_id ID użytkownika
+ * @return array Tablica postaci [ hz (int) => db (float) ]
+ */
+function portalsluchu_get_user_audiogram( $user_id ) {
+    $user_prawe = get_user_meta( $user_id, 'serseo_user_audiogram_prawe_db', true );
+    $user_lewe  = get_user_meta( $user_id, 'serseo_user_audiogram_lewe_db', true );
+
+    $user_audio = array();
+
+    if ( is_array( $user_prawe ) ) {
+        foreach ( $user_prawe as $hz => $db ) {
+            if ( $db === '' || $db === null ) {
+                continue;
+            }
+            $user_audio[ intval( $hz ) ] = floatval( $db );
+        }
+    }
+
+    if ( is_array( $user_lewe ) ) {
+        foreach ( $user_lewe as $hz => $db ) {
+            if ( $db === '' || $db === null ) {
+                continue;
+            }
+            $hz_i  = intval( $hz );
+            $db_f  = floatval( $db );
+
+            // jeśli prawe już było wpisane, bierzemy większą wartość (bardziej restrykcyjna)
+            if ( isset( $user_audio[ $hz_i ] ) ) {
+                $user_audio[ $hz_i ] = max( $user_audio[ $hz_i ], $db_f );
+            } else {
+                $user_audio[ $hz_i ] = $db_f;
+            }
+        }
+    }
+
+    return $user_audio;
+}
+
+/**
+ * Sprawdza, czy produkt pasuje do audiogramu użytkownika.
+ *
+ * Produkt: $product_audio[hz]['od'|'do'] (zakres dB dla danej częstotliwości)
+ * Użytkownik: $user_audio[hz] = poziom (dB) (jedna wartość)
  *
  * Warunek: dla każdej częstotliwości wpisanej przez użytkownika:
  *  product_od <= user_db <= product_do
+ *
+ * @param array $product_audio Audiogram produktu (format: hz => [ 'od' => float, 'do' => float ])
+ * @param array $user_audio Audiogram użytkownika (format: hz => float)
+ * @return bool True, jeśli produkt pasuje do audiogramu użytkownika
  */
 function portalsluchu_audiogram_product_matches_user( $product_audio, $user_audio ) {
     if ( ! is_array( $product_audio ) || ! is_array( $user_audio ) ) {
         return false;
     }
-foreach ( $user_audio as $hz => $u_db ) {
-    $hz = intval( $hz );
+
+    foreach ( $user_audio as $hz => $u_db ) {
+        $hz = intval( $hz );
         if ( $u_db === null || $u_db === '' ) {
             continue;
         }
@@ -71,76 +121,42 @@ function portalsluchu_product_table_filtered_shortcode( $atts ) {
 
     $checked = ( isset( $_GET['audiogram_filter'] ) && $_GET['audiogram_filter'] === '1' );
 
+    // Jeśli user zaznaczył filtr, ale nie ma uzupełnionego audiogramu – pokaż komunikat + link
+    $show_missing_audiogram_notice = false;
 
-
-// Jeśli user zaznaczył filtr, ale nie ma uzupełnionego audiogramu – pokaż komunikat + link
-$show_missing_audiogram_notice = false;
-
-if ( $checked ) {
-    if ( ! is_user_logged_in() ) {
-        $show_missing_audiogram_notice = true;
-    } else {
-        $user_id    = get_current_user_id();
-        $user_prawe = get_user_meta( $user_id, 'serseo_user_audiogram_prawe_db', true );
-$user_lewe  = get_user_meta( $user_id, 'serseo_user_audiogram_lewe_db', true );
-
-$user_audio = array();
-
-if ( is_array( $user_prawe ) ) {
-    foreach ( $user_prawe as $hz => $db ) {
-        if ( $db === '' || $db === null ) {
-            continue;
-        }
-        $user_audio[ intval( $hz ) ] = floatval( $db );
-    }
-}
-
-if ( is_array( $user_lewe ) ) {
-    foreach ( $user_lewe as $hz => $db ) {
-        if ( $db === '' || $db === null ) {
-            continue;
-        }
-        $hz_i  = intval( $hz );
-        $db_f  = floatval( $db );
-
-        // jeśli prawe już było wpisane, bierzemy większą wartość (bardziej restrykcyjna)
-        if ( isset( $user_audio[ $hz_i ] ) ) {
-            $user_audio[ $hz_i ] = max( $user_audio[ $hz_i ], $db_f );
-        } else {
-            $user_audio[ $hz_i ] = $db_f;
-        }
-    }
-}
-
-
-        if ( ! is_array( $user_audio ) || empty( $user_audio ) ) {
+    if ( $checked ) {
+        if ( ! is_user_logged_in() ) {
             $show_missing_audiogram_notice = true;
+        } else {
+            $user_id    = get_current_user_id();
+            $user_audio = portalsluchu_get_user_audiogram( $user_id );
+
+            if ( ! is_array( $user_audio ) || empty( $user_audio ) ) {
+                $show_missing_audiogram_notice = true;
+            }
         }
     }
-}
-
-
 
     ob_start();
-if ( $show_missing_audiogram_notice ) : ?>
-<div class="woocommerce-info" style="margin-bottom:12px;">
-    <div style="text-align:center; color:#b32d2e; font-weight:700; margin-bottom:6px;">
-        UWAGA
-    </div>
-    Wykryliśmy, że nie masz jeszcze uzupełnionego audiogramu. Aby filtrować oferty według zgodności,
-    uzupełnij swój audiogram:<br />
-   <div style="text-align:center;">
-  <a style="font-size:24px; text-decoration:none;" href="moje-konto/moj-audiogram/">>>> Wypełnij audiogram <<<</a>.
-</div>
-</div>
-<?php endif; ?>
+    if ( $show_missing_audiogram_notice ) : ?>
+        <div class="woocommerce-info" style="margin-bottom:12px;">
+            <div style="text-align:center; color:#b32d2e; font-weight:700; margin-bottom:6px;">
+                UWAGA
+            </div>
+            Wykryliśmy, że nie masz jeszcze uzupełnionego audiogramu. Aby filtrować oferty według zgodności,
+            uzupełnij swój audiogram:<br />
+            <div style="text-align:center;">
+                <a style="font-size:24px; text-decoration:none;" href="moje-konto/moj-audiogram/">>>> Wypełnij audiogram <<<</a>.
+            </div>
+        </div>
+    <?php endif; ?>
 
-<div class="portalsluchu-audiogram-filter-box" style="margin-bottom:15px;">
-    <label>
-        <input type="checkbox" id="portalsluchu_audiogram_filter_checkbox" <?php checked( $checked ); ?>>
-        Pokaż tylko aparaty zgodne z moim audiogramem
-    </label>
-</div>
+    <div class="portalsluchu-audiogram-filter-box" style="margin-bottom:15px;">
+        <label>
+            <input type="checkbox" id="portalsluchu_audiogram_filter_checkbox" <?php checked( $checked ); ?>>
+            Pokaż tylko aparaty zgodne z moim audiogramem
+        </label>
+    </div>
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -182,36 +198,8 @@ function portalsluchu_filter_wc_product_table_by_audiogram( $args ) {
     }
 
     $user_id    = get_current_user_id();
-    $user_prawe = get_user_meta( $user_id, 'serseo_user_audiogram_prawe_db', true );
-$user_lewe  = get_user_meta( $user_id, 'serseo_user_audiogram_lewe_db', true );
+    $user_audio = portalsluchu_get_user_audiogram( $user_id );
 
-$user_audio = array();
-
-if ( is_array( $user_prawe ) ) {
-    foreach ( $user_prawe as $hz => $db ) {
-        if ( $db === '' || $db === null ) {
-            continue;
-        }
-        $user_audio[ intval( $hz ) ] = floatval( $db );
-    }
-}
-
-if ( is_array( $user_lewe ) ) {
-    foreach ( $user_lewe as $hz => $db ) {
-        if ( $db === '' || $db === null ) {
-            continue;
-        }
-        $hz_i  = intval( $hz );
-        $db_f  = floatval( $db );
-
-        // jeśli prawe już było wpisane, bierzemy większą wartość (bardziej restrykcyjna)
-        if ( isset( $user_audio[ $hz_i ] ) ) {
-            $user_audio[ $hz_i ] = max( $user_audio[ $hz_i ], $db_f );
-        } else {
-            $user_audio[ $hz_i ] = $db_f;
-        }
-    }
-}
     if ( ! is_array( $user_audio ) || empty( $user_audio ) ) {
         return $args;
     }
