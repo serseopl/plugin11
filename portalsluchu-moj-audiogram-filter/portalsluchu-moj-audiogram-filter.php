@@ -11,44 +11,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Sprawdza, czy audiogram produktu pasuje do audiogramu użytkownika.
+ * Produkt: $product_audio[hz]['od'|'do']  (zakres dB dla danej częstotliwości)
+ * Użytkownik: $user_audio[hz] = poziom (dB) (jedna wartość, bierzemy bardziej restrykcyjne ucho)
  *
- * Produkt: $product_audio[hz]['od'|'do']
- * Użytkownik: $user_audio[hz]['od'|'do']
- *
- * Warunek: dla każdej częstotliwości wpisanej przez użytkownika
- * zakres użytkownika musi mieścić się w zakresie aparatu:
- *  product_od <= user_od  oraz  product_do >= user_do
+ * Warunek: dla każdej częstotliwości wpisanej przez użytkownika:
+ *  product_od <= user_db <= product_do
  */
 function portalsluchu_audiogram_product_matches_user( $product_audio, $user_audio ) {
     if ( ! is_array( $product_audio ) || ! is_array( $user_audio ) ) {
         return false;
     }
+foreach ( $user_audio as $hz => $u_db ) {
+    $hz = intval( $hz );
+        if ( $u_db === null || $u_db === '' ) {
+            continue;
+        }
 
-    foreach ( $user_audio as $hz => $user_vals ) {
         if ( ! isset( $product_audio[ $hz ] ) ) {
             return false;
         }
-
-        $u_od = isset( $user_vals['od'] ) ? floatval( $user_vals['od'] ) : null;
-        $u_do = isset( $user_vals['do'] ) ? floatval( $user_vals['do'] ) : null;
 
         $p_vals = $product_audio[ $hz ];
         $p_od   = isset( $p_vals['od'] ) ? floatval( $p_vals['od'] ) : null;
         $p_do   = isset( $p_vals['do'] ) ? floatval( $p_vals['do'] ) : null;
 
-        if ( $u_od === null && $u_do === null ) {
-            continue;
-        }
-
         if ( $p_od === null || $p_do === null ) {
             return false;
         }
 
-        if ( $u_od !== null && $u_od < $p_od ) {
-            return false;
-        }
-        if ( $u_do !== null && $u_do > $p_do ) {
+        $u_db = floatval( $u_db );
+
+        if ( $u_db < $p_od || $u_db > $p_do ) {
             return false;
         }
     }
@@ -88,7 +81,38 @@ if ( $checked ) {
         $show_missing_audiogram_notice = true;
     } else {
         $user_id    = get_current_user_id();
-        $user_audio = get_user_meta( $user_id, 'serseo_user_audiogram', true );
+        $user_prawe = get_user_meta( $user_id, 'serseo_user_audiogram_prawe_db', true );
+$user_lewe  = get_user_meta( $user_id, 'serseo_user_audiogram_lewe_db', true );
+
+$user_audio = array();
+
+if ( is_array( $user_prawe ) ) {
+    foreach ( $user_prawe as $hz => $db ) {
+        if ( $db === '' || $db === null ) {
+            continue;
+        }
+        $user_audio[ intval( $hz ) ] = floatval( $db );
+    }
+}
+
+if ( is_array( $user_lewe ) ) {
+    foreach ( $user_lewe as $hz => $db ) {
+        if ( $db === '' || $db === null ) {
+            continue;
+        }
+        $hz_i  = intval( $hz );
+        $db_f  = floatval( $db );
+
+        // jeśli prawe już było wpisane, bierzemy większą wartość (bardziej restrykcyjna)
+        if ( isset( $user_audio[ $hz_i ] ) ) {
+            $user_audio[ $hz_i ] = max( $user_audio[ $hz_i ], $db_f );
+        } else {
+            $user_audio[ $hz_i ] = $db_f;
+        }
+    }
+}
+
+
         if ( ! is_array( $user_audio ) || empty( $user_audio ) ) {
             $show_missing_audiogram_notice = true;
         }
@@ -158,8 +182,36 @@ function portalsluchu_filter_wc_product_table_by_audiogram( $args ) {
     }
 
     $user_id    = get_current_user_id();
-    $user_audio = get_user_meta( $user_id, 'serseo_user_audiogram', true );
+    $user_prawe = get_user_meta( $user_id, 'serseo_user_audiogram_prawe_db', true );
+$user_lewe  = get_user_meta( $user_id, 'serseo_user_audiogram_lewe_db', true );
 
+$user_audio = array();
+
+if ( is_array( $user_prawe ) ) {
+    foreach ( $user_prawe as $hz => $db ) {
+        if ( $db === '' || $db === null ) {
+            continue;
+        }
+        $user_audio[ intval( $hz ) ] = floatval( $db );
+    }
+}
+
+if ( is_array( $user_lewe ) ) {
+    foreach ( $user_lewe as $hz => $db ) {
+        if ( $db === '' || $db === null ) {
+            continue;
+        }
+        $hz_i  = intval( $hz );
+        $db_f  = floatval( $db );
+
+        // jeśli prawe już było wpisane, bierzemy większą wartość (bardziej restrykcyjna)
+        if ( isset( $user_audio[ $hz_i ] ) ) {
+            $user_audio[ $hz_i ] = max( $user_audio[ $hz_i ], $db_f );
+        } else {
+            $user_audio[ $hz_i ] = $db_f;
+        }
+    }
+}
     if ( ! is_array( $user_audio ) || empty( $user_audio ) ) {
         return $args;
     }
