@@ -447,7 +447,8 @@ function portalsluchu_kup_add_fees( $cart ) {
 
     // Gwarancja
     if ( ! empty( $data['warranty_price'] ) && ! empty( $data['warranty_years'] ) ) {
-        $label = 'Gwarancja ' . intval( $data['warranty_years'] ) . ' lata';
+        $years = intval( $data['warranty_years'] );
+        $label = 'Gwarancja ' . $years . ( $years === 1 ? ' rok' : ' lata' );
         $cart->add_fee( $label, floatval( $data['warranty_price'] ) );
     }
 }
