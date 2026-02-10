@@ -117,10 +117,10 @@ function portalsluchu_product_audiogram_metabox_cb( $post ) {
             <option value="3" <?php selected( $max_warranty, 3 ); ?>>do 3 lat</option>
         </select>
     </p>
-<p class="description">
-    Na etapie zakupu klient będzie mógł wybrać 1, 2 lub 3 lata gwarancji (w zależności od wartości ustawionej tutaj).
-    Dopłaty: 1 rok +390 zł, 2 lata +490 zł, 3 lata +790 zł. W cenie aparatu jest 5 dni gwarancji rozruchowej.
-</p>
+    <p class="description">
+        Na etapie zakupu klient będzie mógł wybrać 1, 2 lub 3 lata gwarancji (w zależności od wartości ustawionej tutaj).
+        Domyślnie 1 rok = 0 zł, 2 lata = +100 zł, 3 lata = +200 zł.
+    </p>
     <?php
 }
 

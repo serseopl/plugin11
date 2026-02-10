@@ -127,14 +127,14 @@ function portalsluchu_kasa_render_checkout_section( $checkout = null ) {
 
         <h3>Jak chcesz otrzymać aparat?</h3>
 
-<p>
-    <label>
-        <input type="radio" name="portalsluchu_delivery_method" value="dojazd" <?php checked( $delivery_method, 'dojazd' ); ?> />
-        Dojazd do klienta (cena zależna od kodu pocztowego)
-    </label>
-    <br>
-    <small>Na etapie płatności zweryfikujemy kod z adresem dostawy; jeśli będzie inny, koszt zostanie przeliczony.</small>
-</p>
+        <p>
+            <label>
+                <input type="radio" name="portalsluchu_delivery_method" value="dojazd" <?php checked( $delivery_method, 'dojazd' ); ?> />
+                Dojazd do klienta (cena zależna od kodu pocztowego z adresu dostawy)
+            </label>
+            <br>
+            <small>Kod pocztowy z adresu poniżej (sekcja Dane do wysyłki) będzie użyty do wyliczenia strefy i kosztu dojazdu.</small>
+        </p>
 
         <p>
             <label>
@@ -173,37 +173,30 @@ function portalsluchu_kasa_render_checkout_section( $checkout = null ) {
 
         <hr>
 
-<h3>Gwarancja</h3>
-
-<p style="margin-top:0;">
-    W cenie aparatu otrzymujesz <strong>5 dni gwarancji rozruchowej</strong>.
-</p>
-
-<p>
-    <?php if ( $max_warranty <= 1 ) : ?>
-        <strong>Gwarancja 1 rok</strong> (+390 zł).
-        <input type="hidden" name="portalsluchu_warranty_years" value="1" />
-    <?php else : ?>
-        <label>
-            <input type="radio" name="portalsluchu_warranty_years" value="1" <?php checked( $warranty_years, 1 ); ?> />
-            1 rok (+390 zł)
-        </label><br>
-
-        <?php if ( $max_warranty >= 2 ) : ?>
-            <label>
-                <input type="radio" name="portalsluchu_warranty_years" value="2" <?php checked( $warranty_years, 2 ); ?> />
-                2 lata (+490 zł)
-            </label><br>
-        <?php endif; ?>
-
-        <?php if ( $max_warranty >= 3 ) : ?>
-            <label>
-                <input type="radio" name="portalsluchu_warranty_years" value="3" <?php checked( $warranty_years, 3 ); ?> />
-                3 lata (+790 zł)
-            </label>
-        <?php endif; ?>
-    <?php endif; ?>
-</p>
+        <h3>Gwarancja</h3>
+        <p>
+            <?php if ( $max_warranty <= 1 ) : ?>
+                Gwarancja: 1 rok (w cenie aparatu).
+                <input type="hidden" name="portalsluchu_warranty_years" value="1" />
+            <?php else : ?>
+                <label>
+                    <input type="radio" name="portalsluchu_warranty_years" value="1" <?php checked( $warranty_years, 1 ); ?> />
+                    1 rok (0 zł)
+                </label><br>
+                <?php if ( $max_warranty >= 2 ) : ?>
+                    <label>
+                        <input type="radio" name="portalsluchu_warranty_years" value="2" <?php checked( $warranty_years, 2 ); ?> />
+                        2 lata (+100 zł)
+                    </label><br>
+                <?php endif; ?>
+                <?php if ( $max_warranty >= 3 ) : ?>
+                    <label>
+                        <input type="radio" name="portalsluchu_warranty_years" value="3" <?php checked( $warranty_years, 3 ); ?> />
+                        3 lata (+200 zł)
+                    </label>
+                <?php endif; ?>
+            <?php endif; ?>
+        </p>
 
         <hr>
 
@@ -428,63 +421,36 @@ function portalsluchu_kasa_add_fees( $cart ) {
         $warranty_years = 1;
     }
 
-    if ( $warranty_years === 1 ) {
-    $warranty_price = 390.0;
-} elseif ( $warranty_years === 2 ) {
-    $warranty_price = 490.0;
-} elseif ( $warranty_years === 3 ) {
-    $warranty_price = 790.0;
-}
+    if ( $warranty_years === 2 ) {
+        $warranty_price = 100.0;
+    } elseif ( $warranty_years === 3 ) {
+        $warranty_price = 200.0;
+    }
 
     if ( $warranty_price > 0 ) {
         $cart->add_fee( 'Gwarancja ' . $warranty_years . ' lata', $warranty_price );
     }
-// Dojazd – naliczamy dopiero, gdy kod pocztowy jest kompletny (5 cyfr); źródło: shipping_postcode (fallback billing_postcode)
-if ( $delivery_method === 'dojazd' ) {
-    $shipping_postcode = '';
-    $billing_postcode  = '';
 
-    if ( isset( $_POST['shipping_postcode'] ) ) {
-        $shipping_postcode = sanitize_text_field( wp_unslash( $_POST['shipping_postcode'] ) );
-    } elseif ( WC()->customer ) {
-        $shipping_postcode = WC()->customer->get_shipping_postcode();
-    }
+    // Dojazd – liczymy na podstawie billing_postcode, tylko jeśli wybrano "dojazd"
+    if ( $delivery_method === 'dojazd' ) {
+        $billing_postcode = '';
+        if ( isset( $_POST['billing_postcode'] ) ) {
+            $billing_postcode = sanitize_text_field( wp_unslash( $_POST['billing_postcode'] ) );
+        } elseif ( WC()->customer ) {
+            $billing_postcode = WC()->customer->get_billing_postcode();
+        }
 
-    if ( isset( $_POST['billing_postcode'] ) ) {
-        $billing_postcode = sanitize_text_field( wp_unslash( $_POST['billing_postcode'] ) );
-    } elseif ( WC()->customer ) {
-        $billing_postcode = WC()->customer->get_billing_postcode();
-    }
+        if ( $billing_postcode && function_exists( 'portalsluchu_dojazd_calculate_for_postcode' ) ) {
+            $res   = portalsluchu_dojazd_calculate_for_postcode( $billing_postcode );
+            $zone  = isset( $res['zone'] )  ? (int) $res['zone'] : 5;
+            $price = isset( $res['price'] ) ? (float) $res['price'] : 0.0;
 
-    $use_shipping = false;
-if ( WC()->customer ) {
-    $use_shipping = WC()->customer->has_shipping_address();
-}
-
-// Jeśli shipping nieużywany (checkbox odznaczony), bierz billing nawet jeśli shipping_postcode "wisi" w sesji
-$postcode_raw = ( $use_shipping && $shipping_postcode ) ? $shipping_postcode : $billing_postcode;
-
-    $digits = preg_replace( '/\D+/', '', (string) $postcode_raw );
-    if ( strlen( $digits ) !== 5 ) {
-        return;
-    }
-
-    $postcode = substr( $digits, 0, 2 ) . '-' . substr( $digits, 2, 3 );
-
-    if ( function_exists( 'portalsluchu_dojazd_calculate_for_postcode' ) ) {
-        $res   = portalsluchu_dojazd_calculate_for_postcode( $postcode );
-        $zone  = isset( $res['zone'] )  ? (int) $res['zone'] : 5;
-        $price = isset( $res['price'] ) ? (float) $res['price'] : 0.0;
-
-        if ( $price > 0 ) {
-            $label = 'Dojazd do klienta (strefa ' . $zone . ')';
-            $cart->add_fee( $label, $price );
+            if ( $price > 0 ) {
+                $label = 'Dojazd do klienta (strefa ' . $zone . ')';
+                $cart->add_fee( $label, $price );
+            }
         }
     }
-}
-
-
-
 }
 add_action( 'woocommerce_cart_calculate_fees', 'portalsluchu_kasa_add_fees', 25 );
 

@@ -3,137 +3,143 @@
  * Plugin Name: portalsluchu – Kod pocztowy na stronie "Kasa"
  * Description: portalsluchu-kasa-postcode-helper / Auto-formatowanie kodu pocztowego (01-000) + natychmiastowe wyliczanie strefy dojazdu na stronie zamówienia (/kasa). Wymaga wtyczki "portalsluchu – Strefy dojazdu".
  * Author: portalsluchu.pl
- * Version: 1.0.1
- */
+ * Version: 1.0.0
+ */ 
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+    exit;
 }
 
 /**
  * Wstrzykujemy JS tylko na froncie i tylko na stronie zamówienia.
  */
 function portalsluchu_kasa_postcode_helper_footer_script() {
-	if ( is_admin() ) {
-		return;
-	}
+    if ( is_admin() ) {
+        return;
+    }
 
-	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
-		return;
-	}
+    if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
+        return;
+    }
 
-	?>
-	<script>
-	(function($) {
-	  $(function() {
+    // Pole musi istnieć w HTML (wygenerowane przez Twój box na "Kasa")
+    ?>
+    <script>
+    (function($) {
+      $(function() {
 
-		// Checkout postcode fields
-		var $billingPostcode  = $('#billing_postcode');
-		var $shippingPostcode = $('#shipping_postcode');
+        var $postcode = $('#portalsluchu_delivery_postcode');
+        var $info     = $('#portalsluchu_delivery_info');
 
-		// Your info element
-		var $info = $('#portalsluchu_delivery_info');
+        if (!$postcode.length || !$info.length) {
+          return;
+        }
 
-		if (!$info.length) {
-		  return;
-		}
+        var ajaxUrl = '<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>';
+        var lastSentDigits = null;
 
-		var ajaxUrl = '<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>';
-		var lastSentDigits = null;
+        /**
+         * Formatuje wpis użytkownika do postaci "01-000".
+         * - Akceptuje wpis z myślnikiem i bez myślnika.
+         * - Zostawia tylko cyfry, max 5.
+         */
+        function formatPostcode(value) {
+          var digits = (value || '').replace(/\D+/g, '').slice(0, 5);
 
-		function formatPostcode(value) {
-		  var digits = (value || '').replace(/\D+/g, '').slice(0, 5);
-		  if (digits.length <= 2) return digits;
-		  return digits.slice(0, 2) + '-' + digits.slice(2);
-		}
+          if (digits.length <= 2) {
+            return digits; // "0", "01"
+          } else {
+            return digits.slice(0, 2) + '-' + digits.slice(2); // "01-0", "01-000"
+          }
+        }
 
-		function normalizeToDigits(value) {
-		  return (value || '').replace(/\D+/g, '').slice(0, 5);
-		}
+        /**
+         * Pobiera z serwera strefę i cenę na podstawie kodu.
+         * Korzysta z akcji AJAX "portalsluchu_dojazd_info"
+         * z wtyczki "portalsluchu – Strefy dojazdu".
+         */
+        function fetchZone() {
+          var raw    = $postcode.val() || '';
+          var digits = raw.replace(/\D+/g, '');
 
-		function currentPostcodeDigits() {
-		  // If "ship to different address" is enabled, Woo uses shipping fields.
-		  // Otherwise, billing fields determine the address.
-		  var useShipping = $('#ship-to-different-address-checkbox').is(':checked');
+          if (digits.length !== 5) {
+            $info.text('Wprowadź pełny kod pocztowy (5 cyfr).');
+            lastSentDigits = null;
+            return;
+          }
 
-		  var raw = useShipping ? $shippingPostcode.val() : $billingPostcode.val();
-		  return normalizeToDigits(raw);
-		}
+          if (digits === lastSentDigits) {
+            return; // Nic się nie zmieniło
+          }
+          lastSentDigits = digits;
 
-		function applyFormattingToField($field) {
-		  if (!$field.length) return;
+          $.post(
+            ajaxUrl,
+            {
+              action:   'portalsluchu_dojazd_info',
+              postcode: digits
+            }
+          ).done(function(resp) {
 
-		  var before    = $field.val();
-		  var formatted = formatPostcode(before);
+            if (!resp || !resp.success || !resp.data) {
+              $info.text('Nie udało się pobrać informacji o strefie. Spróbuj ponownie.');
+              return;
+            }
 
-		  if (before !== formatted) {
-			var cursorPos = $field[0].selectionStart || formatted.length;
-			$field.val(formatted);
-			try { $field[0].setSelectionRange(cursorPos, cursorPos); } catch(e) {}
-		  }
-		}
+            var zone       = parseInt(resp.data.zone, 10);
+            var priceHtml  = resp.data.price_formatted || '';
+            var baseText   = 'Wprowadź kod pocztowy, aby wstępnie oszacować koszt dojazdu. Ostateczna kwota może się zmienić, jeśli na etapie płatności podasz inny adres dostawy.';
 
-		function fetchZone() {
-		  var digits = currentPostcodeDigits();
+            if (zone >= 1 && zone <= 4) {
+              // Strefy 1–4 (pochodzą z plików tekstowych)
+              $info.html(
+                'Należysz do strefy ' + zone +
+                ' – przyjazd to ' + priceHtml + '.<br>' +
+                baseText
+              );
+            } else {
+              // Wszystko inne traktujemy jako strefę 5 (domyślnie 500 / 550 zł)
+              $info.html(
+                'Twój kod pocztowy należy do strefy 5 – przyjazd to ' + priceHtml + '.<br>' +
+                baseText
+              );
+            }
 
-		  if (digits.length !== 5) {
-			$info.text(''); // czekamy aż będzie pełny kod
-			lastSentDigits = null;
-			return;
-		  }
+          }).fail(function() {
+            $info.text('Nie udało się pobrać informacji o strefie. Sprawdź połączenie i spróbuj ponownie.');
+          });
+        }
 
-		  if (digits === lastSentDigits) {
-			return;
-		  }
-		  lastSentDigits = digits;
+        /**
+         * Obsługa wpisywania:
+         * - formatuje na bieżąco (auto-kreska),
+         * - po 5 cyfrach odpala fetchZone().
+         */
+        $postcode.on('input', function() {
+          var before    = $postcode.val();
+          var formatted = formatPostcode(before);
 
-		  $.post(ajaxUrl, {
-			action:   'portalsluchu_dojazd_info',
-			postcode: digits
-		  }).done(function(resp) {
+          if (before !== formatted) {
+            // Zapisujemy pozycję kursora w prosty sposób
+            var cursorPos = $postcode[0].selectionStart || formatted.length;
+            $postcode.val(formatted);
+            try {
+              $postcode[0].setSelectionRange(cursorPos, cursorPos);
+            } catch(e) {}
+          }
 
-			if (!resp || !resp.success || !resp.data) {
-			  $info.text('Nie udało się ustalić strefy. Sprawdź format 00-000 (np. 30-001) i spróbuj ponownie.');
-			  return;
-			}
+          var digits = formatted.replace(/\D+/g, '');
+          if (digits.length === 5) {
+            fetchZone();
+          } else {
+            $info.text('');
+            lastSentDigits = null;
+          }
+        });
 
-			var zone      = parseInt(resp.data.zone, 10);
-			var priceHtml = resp.data.price_formatted || '';
-
-			if (!(zone >= 1 && zone <= 5) || !priceHtml) {
-			  $info.text('Nie udało się ustalić strefy. Sprawdź format 00-000 (np. 30-001) i spróbuj ponownie.');
-			  return;
-			}
-
-			$info.html(
-			  'Kod należy do strefy ' + zone + '. Koszt dojazdu: ' + priceHtml + '.<br>' +
-			  'Na etapie płatności zweryfikujemy kod z adresem dostawy; jeśli będzie inny, koszt zostanie przeliczony.'
-			);
-
-		  }).fail(function() {
-			$info.text('Nie udało się ustalić strefy. Sprawdź połączenie i spróbuj ponownie.');
-		  });
-		}
-
-		// Format + fetch on input
-		$(document).on('input', '#billing_postcode, #shipping_postcode', function() {
-		  applyFormattingToField($(this));
-		  fetchZone();
-		  $('body').trigger('update_checkout');
-		});
-
-		// When toggling "ship to different address" we must re-evaluate which postcode is active
-		$(document).on('change', '#ship-to-different-address-checkbox', function() {
-		  fetchZone();
-		  $('body').trigger('update_checkout');
-		});
-
-		// Initial run
-		fetchZone();
-
-	  });
-	})(jQuery);
-	</script>
-	<?php
+      });
+    })(jQuery);
+    </script>
+    <?php
 }
 add_action( 'wp_footer', 'portalsluchu_kasa_postcode_helper_footer_script', 50 );
