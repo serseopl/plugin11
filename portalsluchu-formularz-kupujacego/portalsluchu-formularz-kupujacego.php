@@ -87,25 +87,23 @@ if ( $warranty_years === 1 ) {
         $delivery_postcode = '';
         $delivery_salon    = '';
 
-        if ( $delivery_method === 'dojazd' ) {
-            $delivery_postcode = isset( $_POST['delivery_postcode'] ) ? sanitize_text_field( $_POST['delivery_postcode'] ) : '';
+        
+    if ( $delivery_method === 'dojazd' ) {
+    $delivery_postcode = isset( $_POST['delivery_postcode'] ) ? sanitize_text_field( $_POST['delivery_postcode'] ) : '';
 
-            if ( ! $delivery_postcode ) {
-                $error_msg = 'Podaj kod pocztowy do dojazdu.';
-            } elseif ( function_exists( 'portalsluchu_dojazd_calculate_for_postcode' ) ) {
-                $res            = portalsluchu_dojazd_calculate_for_postcode( $delivery_postcode );
-                $delivery_price = isset( $res['price'] ) ? floatval( $res['price'] ) : 0.0;
-                $zone           = isset( $res['zone'] ) ? intval( $res['zone'] ) : 0;
-                if ( $zone > 0 ) {
-                    $delivery_label = 'Dojazd do klienta (strefa ' . $zone . ')';
-                } else {
-                    $delivery_label = 'Dojazd do klienta';
-                }
-            } else {
-                $delivery_price = 0.0;
-                $delivery_label = 'Dojazd do klienta';
-            }
-        } elseif ( $delivery_method === 'salon' ) {
+    if ( ! $delivery_postcode ) {
+        $error_msg = 'Podaj kod pocztowy do dojazdu.';
+    }
+
+    // Na KUP to tylko podgląd. Nie zapisujemy ceny/strefy do sesji.
+    $delivery_price = 0.0;
+    $delivery_label = '';
+}
+        
+        
+        
+        
+        elseif ( $delivery_method === 'salon' ) {
             $delivery_salon = isset( $_POST['delivery_salon'] ) ? sanitize_text_field( $_POST['delivery_salon'] ) : '';
             if ( ! $delivery_salon ) {
                 $error_msg = 'Wybierz salon odbioru.';
@@ -129,9 +127,9 @@ if ( $warranty_years === 1 ) {
                 'pakiet_startowy'   => $pakiet_startowy,
                 'pakiet_price'      => $pakiet_price,
                 'delivery_method'   => $delivery_method,
-                'delivery_label'    => $delivery_label,
-                'delivery_price'    => $delivery_price,
-                'delivery_postcode' => $delivery_postcode,
+                'delivery_label'    => ( $delivery_method === 'kurier' ? $delivery_label : '' ),
+                'delivery_price'    => ( $delivery_method === 'kurier' ? $delivery_price : 0.0 ),
+                'delivery_postcode' => '',
                 'delivery_salon'    => $delivery_salon,
                 'warranty_years'    => $warranty_years,
                 'warranty_price'    => $warranty_price,
@@ -440,10 +438,36 @@ function portalsluchu_kup_add_fees( $cart ) {
         $cart->add_fee( 'Pakiet startowy', floatval( $data['pakiet_price'] ) );
     }
 
-    // Dojazd lub kurier – zawsze jeśli jest cena i etykieta
+
+// Kurier – stała opłata z sesji (dojazd liczy inny moduł)
+if ( ! empty( $data['delivery_method'] ) && $data['delivery_method'] === 'kurier' ) {
     if ( ! empty( $data['delivery_price'] ) && ! empty( $data['delivery_label'] ) ) {
         $cart->add_fee( $data['delivery_label'], floatval( $data['delivery_price'] ) );
     }
+}
+
+// Dojazd – liczymy na /kasa z kodu z checkout (shipping_postcode fallback billing_postcode)
+if ( ! empty( $data['delivery_method'] ) && $data['delivery_method'] === 'dojazd' ) {
+    $shipping_postcode = isset( $_POST['shipping_postcode'] ) ? sanitize_text_field( wp_unslash( $_POST['shipping_postcode'] ) ) : '';
+    $billing_postcode  = isset( $_POST['billing_postcode'] )  ? sanitize_text_field( wp_unslash( $_POST['billing_postcode'] ) )  : '';
+
+    $postcode_raw = $shipping_postcode ? $shipping_postcode : $billing_postcode;
+
+    $digits = preg_replace( '/\D+/', '', (string) $postcode_raw );
+    if ( strlen( $digits ) === 5 && function_exists( 'portalsluchu_dojazd_calculate_for_postcode' ) ) {
+        $postcode = substr( $digits, 0, 2 ) . '-' . substr( $digits, 2, 3 );
+
+        $res   = portalsluchu_dojazd_calculate_for_postcode( $postcode );
+        $zone  = isset( $res['zone'] )  ? (int) $res['zone'] : 5;
+        $price = isset( $res['price'] ) ? (float) $res['price'] : 0.0;
+
+        if ( $price > 0 ) {
+            $label = 'Dojazd do klienta (strefa ' . $zone . ')';
+            $cart->add_fee( $label, $price );
+        }
+    }
+}
+
 
     // Gwarancja
     if ( ! empty( $data['warranty_price'] ) && ! empty( $data['warranty_years'] ) ) {
