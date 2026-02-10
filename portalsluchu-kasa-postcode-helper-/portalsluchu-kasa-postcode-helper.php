@@ -22,6 +22,19 @@ function portalsluchu_kasa_postcode_helper_footer_script() {
         return;
     }
 
+    // Dodaj style dla kontenera informacyjnego
+    ?>
+    <style>
+    #portalsluchu_delivery_info {
+        margin-top: 8px;
+        padding: 8px;
+        border-left: 3px solid #0073aa;
+        background: #f0f0f0;
+        font-size: 13px;
+    }
+    </style>
+    <?php
+
     // Pole musi istnieć w HTML (wygenerowane przez Twój box na "Kasa")
     ?>
     <script>
@@ -38,7 +51,7 @@ function portalsluchu_kasa_postcode_helper_footer_script() {
         var $info = $('#portalsluchu_delivery_info');
         if (!$info.length && $postcode.length) {
           // Create info container after the postcode field
-          $postcode.after('<div id="portalsluchu_delivery_info" style="margin-top:8px; padding:8px; border-left:3px solid #0073aa; background:#f0f0f0; font-size:13px;"></div>');
+          $postcode.after('<div id="portalsluchu_delivery_info"></div>');
           $info = $('#portalsluchu_delivery_info');
         }
 
@@ -137,18 +150,10 @@ function portalsluchu_kasa_postcode_helper_footer_script() {
           }
         });
 
-        // Check on load if there's already a postcode
-        if ($postcode.val()) {
-          var formatted = formatPostcode($postcode.val());
-          $postcode.val(formatted);
-          var digits = formatted.replace(/\D+/g, '');
-          if (digits.length === 5) {
-            fetchZone();
-          }
-        }
-
-        // Also check when WooCommerce updates the checkout
-        $(document.body).on('updated_checkout', function() {
+        /**
+         * Check and fetch zone for current postcode value
+         */
+        function checkAndFetchZone() {
           if ($postcode.val()) {
             var formatted = formatPostcode($postcode.val());
             $postcode.val(formatted);
@@ -157,7 +162,13 @@ function portalsluchu_kasa_postcode_helper_footer_script() {
               fetchZone();
             }
           }
-        });
+        }
+
+        // Check on load if there's already a postcode
+        checkAndFetchZone();
+
+        // Also check when WooCommerce updates the checkout
+        $(document.body).on('updated_checkout', checkAndFetchZone);
 
       });
     })(jQuery);
