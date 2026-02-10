@@ -28,8 +28,19 @@ function portalsluchu_kasa_postcode_helper_footer_script() {
     (function($) {
       $(function() {
 
-        var $postcode = $('#portalsluchu_delivery_postcode');
-        var $info     = $('#portalsluchu_delivery_info');
+        // Try to find postcode field (shipping first, then billing as fallback)
+        var $postcode = $('#shipping_postcode');
+        if (!$postcode.length) {
+          $postcode = $('#billing_postcode');
+        }
+        
+        // Info container - create if it doesn't exist
+        var $info = $('#portalsluchu_delivery_info');
+        if (!$info.length && $postcode.length) {
+          // Create info container after the postcode field
+          $postcode.after('<div id="portalsluchu_delivery_info" style="margin-top:8px; padding:8px; border-left:3px solid #0073aa; background:#f0f0f0; font-size:13px;"></div>');
+          $info = $('#portalsluchu_delivery_info');
+        }
 
         if (!$postcode.length || !$info.length) {
           return;
@@ -63,7 +74,7 @@ function portalsluchu_kasa_postcode_helper_footer_script() {
           var digits = raw.replace(/\D+/g, '');
 
           if (digits.length !== 5) {
-            $info.text('Wprowadź pełny kod pocztowy (5 cyfr).');
+            $info.html('<span style="color:#666;">Wprowadź pełny kod pocztowy (format 00-000), aby wyliczyć strefę i koszt dojazdu.</span>');
             lastSentDigits = null;
             return;
           }
@@ -82,31 +93,20 @@ function portalsluchu_kasa_postcode_helper_footer_script() {
           ).done(function(resp) {
 
             if (!resp || !resp.success || !resp.data) {
-              $info.text('Nie udało się pobrać informacji o strefie. Spróbuj ponownie.');
+              $info.html('<span style="color:#dc3545;">Nie udało się ustalić strefy. Sprawdź kod pocztowy (format 00-000) i spróbuj ponownie.</span>');
               return;
             }
 
             var zone       = parseInt(resp.data.zone, 10);
             var priceHtml  = resp.data.price_formatted || '';
-            var baseText   = 'Wprowadź kod pocztowy, aby wstępnie oszacować koszt dojazdu. Ostateczna kwota może się zmienić, jeśli na etapie płatności podasz inny adres dostawy.';
 
-            if (zone >= 1 && zone <= 4) {
-              // Strefy 1–4 (pochodzą z plików tekstowych)
-              $info.html(
-                'Należysz do strefy ' + zone +
-                ' – przyjazd to ' + priceHtml + '.<br>' +
-                baseText
-              );
-            } else {
-              // Wszystko inne traktujemy jako strefę 5 (domyślnie 500 / 550 zł)
-              $info.html(
-                'Twój kod pocztowy należy do strefy 5 – przyjazd to ' + priceHtml + '.<br>' +
-                baseText
-              );
-            }
+            $info.html(
+              '<strong style="color:#28a745;">Strefa ' + zone + ', koszt dojazdu: ' + priceHtml + '</strong><br>' +
+              '<small style="color:#666;">Ostateczna strefa i koszt będą zweryfikowane na podstawie kodu pocztowego z adresu dostawy podanego poniżej.</small>'
+            );
 
           }).fail(function() {
-            $info.text('Nie udało się pobrać informacji o strefie. Sprawdź połączenie i spróbuj ponownie.');
+            $info.html('<span style="color:#dc3545;">Błąd połączenia. Sprawdź kod pocztowy (format 00-000) i spróbuj ponownie.</span>');
           });
         }
 
@@ -132,8 +132,30 @@ function portalsluchu_kasa_postcode_helper_footer_script() {
           if (digits.length === 5) {
             fetchZone();
           } else {
-            $info.text('');
+            $info.html('<span style="color:#666;">Wprowadź pełny kod pocztowy (format 00-000), aby wyliczyć strefę i koszt dojazdu.</span>');
             lastSentDigits = null;
+          }
+        });
+
+        // Check on load if there's already a postcode
+        if ($postcode.val()) {
+          var formatted = formatPostcode($postcode.val());
+          $postcode.val(formatted);
+          var digits = formatted.replace(/\D+/g, '');
+          if (digits.length === 5) {
+            fetchZone();
+          }
+        }
+
+        // Also check when WooCommerce updates the checkout
+        $(document.body).on('updated_checkout', function() {
+          if ($postcode.val()) {
+            var formatted = formatPostcode($postcode.val());
+            $postcode.val(formatted);
+            var digits = formatted.replace(/\D+/g, '');
+            if (digits.length === 5) {
+              fetchZone();
+            }
           }
         });
 

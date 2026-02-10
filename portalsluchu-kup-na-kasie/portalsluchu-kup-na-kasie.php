@@ -130,10 +130,10 @@ function portalsluchu_kasa_render_checkout_section( $checkout = null ) {
         <p>
             <label>
                 <input type="radio" name="portalsluchu_delivery_method" value="dojazd" <?php checked( $delivery_method, 'dojazd' ); ?> />
-                Dojazd do klienta (cena zależna od kodu pocztowego z adresu dostawy)
+                Dojazd do klienta
             </label>
             <br>
-            <small>Kod pocztowy z adresu poniżej (sekcja Dane do wysyłki) będzie użyty do wyliczenia strefy i kosztu dojazdu.</small>
+            <small>Koszt dojazdu jest obliczany na podstawie kodu pocztowego z adresu dostawy (sekcja poniżej). Cena zależna od strefy (1-5).</small>
         </p>
 
         <p>
