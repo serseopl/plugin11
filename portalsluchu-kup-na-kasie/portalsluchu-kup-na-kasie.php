@@ -437,7 +437,8 @@ function portalsluchu_kasa_add_fees( $cart ) {
 }
 
     if ( $warranty_price > 0 ) {
-        $cart->add_fee( 'Gwarancja ' . $warranty_years . ' lata', $warranty_price );
+        $label = 'Gwarancja ' . $warranty_years . ( $warranty_years === 1 ? ' rok' : ' lata' );
+        $cart->add_fee( $label, $warranty_price );
     }
 
     // Dojazd – liczymy na podstawie billing_postcode, tylko jeśli wybrano "dojazd"
