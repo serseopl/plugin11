@@ -346,9 +346,9 @@ if ( $warranty_years === 1 ) {
                 if (resp && resp.success && resp.data) {
                   var zone  = resp.data.zone;
                   var price = resp.data.price_formatted || resp.data.price;
-                  info.textContent = 'Należysz do strefy ' + zone + ' – przyjazd to ' + price + '.';
+                  info.innerHTML = 'Kod należy do strefy ' + zone + '. Koszt dojazdu: ' + price + '.';
                 } else {
-                  info.textContent = 'Nie udało się ustalić strefy dojazdu dla podanego kodu.';
+                  info.textContent = 'Nie udało się ustalić strefy. Sprawdź format 00-000 (np. 30-001) i spróbuj ponownie.';
                 }
               } catch (e) {
                 info.textContent = 'Nie udało się ustalić strefy dojazdu dla podanego kodu.';

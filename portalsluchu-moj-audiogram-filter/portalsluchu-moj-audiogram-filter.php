@@ -11,18 +11,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Produkt: $product_audio[hz]['od'|'do']  (zakres dB dla danej częstotliwości)
- * Użytkownik: $user_audio[hz] = poziom (dB) (jedna wartość, bierzemy bardziej restrykcyjne ucho)
+ * Sprawdza, czy audiogram produktu pasuje do audiogramu użytkownika.
  *
- * Warunek: dla każdej częstotliwości wpisanej przez użytkownika:
- *  product_od <= user_db <= product_do
+ * Produkt: $product_audio[hz]['od'|'do']
+ * Użytkownik: $user_audio[hz]['od'|'do']
+ *
+ * Warunek: dla każdej częstotliwości wpisanej przez użytkownika
+ * zakres użytkownika musi mieścić się w zakresie aparatu:
+ *  product_od <= user_od  oraz  product_do >= user_do
  */
 function portalsluchu_audiogram_product_matches_user( $product_audio, $user_audio ) {
     if ( ! is_array( $product_audio ) || ! is_array( $user_audio ) ) {
         return false;
     }
-foreach ( $user_audio as $hz => $u_db ) {
-    $hz = intval( $hz );
+
+    foreach ( $user_audio as $hz => $u_db ) {
         if ( $u_db === null || $u_db === '' ) {
             continue;
         }
