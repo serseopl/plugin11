@@ -63,7 +63,7 @@ function portalsluchu_kasa_postcode_helper_footer_script() {
           var digits = raw.replace(/\D+/g, '');
 
           if (digits.length !== 5) {
-            $info.text('Wprowadź pełny kod pocztowy (5 cyfr).');
+            $info.text('');
             lastSentDigits = null;
             return;
           }
@@ -82,31 +82,24 @@ function portalsluchu_kasa_postcode_helper_footer_script() {
           ).done(function(resp) {
 
             if (!resp || !resp.success || !resp.data) {
-              $info.text('Nie udało się pobrać informacji o strefie. Spróbuj ponownie.');
+              $info.text('Nie udało się ustalić strefy. Sprawdź format 00-000 (np. 30-001).');
               return;
             }
 
             var zone       = parseInt(resp.data.zone, 10);
             var priceHtml  = resp.data.price_formatted || '';
-            var baseText   = 'Wprowadź kod pocztowy, aby wstępnie oszacować koszt dojazdu. Ostateczna kwota może się zmienić, jeśli na etapie płatności podasz inny adres dostawy.';
 
-            if (zone >= 1 && zone <= 4) {
-              // Strefy 1–4 (pochodzą z plików tekstowych)
+            if (zone >= 1 && zone <= 5) {
               $info.html(
-                'Należysz do strefy ' + zone +
-                ' – przyjazd to ' + priceHtml + '.<br>' +
-                baseText
+                'Kod należy do strefy ' + zone + '. Koszt dojazdu: ' + priceHtml + '.<br>' +
+                '<small style="color:#555;">Na etapie płatności zweryfikujemy kod z adresem dostawy; jeśli będzie inny, koszt zostanie przeliczony.</small>'
               );
             } else {
-              // Wszystko inne traktujemy jako strefę 5 (domyślnie 500 / 550 zł)
-              $info.html(
-                'Twój kod pocztowy należy do strefy 5 – przyjazd to ' + priceHtml + '.<br>' +
-                baseText
-              );
+              $info.text('Nie udało się ustalić strefy. Sprawdź format 00-000 (np. 30-001).');
             }
 
           }).fail(function() {
-            $info.text('Nie udało się pobrać informacji o strefie. Sprawdź połączenie i spróbuj ponownie.');
+            $info.text('Nie udało się ustalić strefy. Sprawdź format 00-000 (np. 30-001).');
           });
         }
 
