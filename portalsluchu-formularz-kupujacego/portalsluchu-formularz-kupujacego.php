@@ -211,8 +211,7 @@ if ( $warranty_years === 1 ) {
                 <small id="portalsluchu_delivery_info" style="display:block; margin-top:4px;"></small>
             </p>
             <p style="font-size:12px; color:#555;">
-                Wprowadź kod pocztowy, aby wstępnie oszacować koszt dojazdu. Ostateczna kwota może się zmienić,
-                jeśli na etapie płatności podasz inny adres dostawy.
+                Na etapie płatności zweryfikujemy kod pocztowy z adresem dostawy. Jeśli będzie inny niż podany tutaj, koszt zostanie przeliczony.
             </p>
         </div>
 
@@ -346,15 +345,19 @@ if ( $warranty_years === 1 ) {
                 if (resp && resp.success && resp.data) {
                   var zone  = resp.data.zone;
                   var price = resp.data.price_formatted || resp.data.price;
-                  info.textContent = 'Należysz do strefy ' + zone + ' – przyjazd to ' + price + '.';
+                  info.textContent = 'Kod należy do strefy ' + zone + '. Koszt dojazdu: ' + price;
+                  info.style.color = '#28a745';
                 } else {
-                  info.textContent = 'Nie udało się ustalić strefy dojazdu dla podanego kodu.';
+                  info.textContent = 'Nie udało się ustalić strefy dla tego kodu. Sprawdź format 00-000 i spróbuj ponownie.';
+                  info.style.color = '#dc3545';
                 }
               } catch (e) {
-                info.textContent = 'Nie udało się ustalić strefy dojazdu dla podanego kodu.';
+                info.textContent = 'Nie udało się ustalić strefy dla tego kodu. Sprawdź format 00-000 i spróbuj ponownie.';
+                info.style.color = '#dc3545';
               }
             } else {
-              info.textContent = 'Nie udało się ustalić strefy dojazdu dla podanego kodu.';
+              info.textContent = 'Błąd połączenia. Sprawdź kod pocztowy (format 00-000) i spróbuj ponownie.';
+              info.style.color = '#dc3545';
             }
           }
         };

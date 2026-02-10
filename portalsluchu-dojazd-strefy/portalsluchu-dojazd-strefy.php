@@ -276,7 +276,15 @@ if ( ! function_exists( 'portalsluchu_dojazd_calculate_for_postcode' ) ) {
  */
 function portalsluchu_ajax_dojazd_info() {
     $postcode = isset( $_POST['postcode'] ) ? sanitize_text_field( wp_unslash( $_POST['postcode'] ) ) : '';
-    $info     = portalsluchu_get_dojazd_for_postcode( $postcode );
+    
+    if ( empty( $postcode ) ) {
+        wp_send_json_error( array(
+            'message' => 'Kod pocztowy jest wymagany. Wprowadź kod w formacie 00-000.',
+        ) );
+        return;
+    }
+    
+    $info = portalsluchu_get_dojazd_for_postcode( $postcode );
 
     $zone  = isset( $info['zone'] ) ? (int) $info['zone'] : 5;
     $price = isset( $info['price'] ) ? (float) $info['price'] : 0.0;
@@ -285,6 +293,7 @@ function portalsluchu_ajax_dojazd_info() {
         'zone'            => $zone,
         'price'           => $price,
         'price_formatted' => function_exists('wc_price') ? wc_price( $price ) : (string) $price,
+        'postcode'        => portalsluchu_normalize_postcode( $postcode ),
     ) );
 }
 add_action( 'wp_ajax_portalsluchu_dojazd_info', 'portalsluchu_ajax_dojazd_info' );
