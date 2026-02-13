@@ -1,26 +1,57 @@
 <?php
 /**
  * Plugin Name: portalsluchu – Formularz kupującego
- * Description: Formularz „KUP” na karcie produktu. Zapisuje do sesji WooCommerce pakiet startowy (+100 zł) i gwarancję (5 dni rozruchowej lub 1/2/3 lata wg meta produktu). Dostawa wybierana jest na /kasa.
+ * Description: Formularz „KUP” na karcie produktu. Zapisuje do sesji WooCommerce: prowizję (99 zł), opcjonalne przystosowanie (100 zł) i gwarancję (5 dni lub 1/2/3 lata wg meta produktu). Dostawa wybierana jest na /kasa.
  * Author: portalsluchu.pl
- * Version: 1.4.2
+ * Version: 1.5.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Shortcode: [portalsluchu_kup_form]
- */
 function portalsluchu_kup_form_shortcode( $atts ) {
 	if ( ! function_exists( 'WC' ) ) {
 		return '<p>WooCommerce jest wymagany do działania tego formularza.</p>';
 	}
 
+/*
+if ( ! is_user_logged_in() ) {
+	return '<div style="padding:12px 16px; border:2px solid #cc0000; background:#ffecec; color:#cc0000; font-size:20px; font-weight:700; line-height:1.4; margin:16px 0;">Aby kupić aparat, zaloguj się lub załóż konto.</div>';
+}
+	*/
+
 	if ( ! is_user_logged_in() ) {
-		return '<p>Aby kupić aparat, zaloguj się lub załóż konto.</p>';
-	}
+	$account_url = home_url( '/moje-konto/' );
+
+	return '
+	<div style="
+		margin: 18px 0;
+		padding: 14px 18px;
+		border-radius: 14px;
+		border: 1px solid rgba(220, 38, 38, .35);
+		background: linear-gradient(180deg, rgba(254, 242, 242, 1) 0%, rgba(255, 255, 255, 1) 100%);
+		box-shadow: 0 10px 24px rgba(0,0,0,.08);
+		color: #991b1b;
+		font-size: 19px;
+		font-weight: 700;
+		line-height: 1.4;
+		font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, \"Apple Color Emoji\", \"Segoe UI Emoji\";
+		letter-spacing: .2px;
+	">
+		Aby kupić aparat,
+		<a href="' . esc_url( $account_url ) . '" style="color:#7f1d1d; text-decoration: underline; font-weight: 800;">
+			zaloguj się
+		</a>
+		lub
+		<a href="' . esc_url( $account_url ) . '" style="color:#7f1d1d; text-decoration: underline; font-weight: 800;">
+			załóż konto
+		</a>.
+		<div style="margin-top:6px; font-size: 14px; font-weight: 600; color: rgba(153,27,27,.78);">
+			To zajmie chwilę i pozwoli dokończyć zakup.
+		</div>
+	</div>';
+}
 
 	$product_id = isset( $_GET['product_id'] ) ? intval( $_GET['product_id'] ) : 0;
 
@@ -37,8 +68,11 @@ function portalsluchu_kup_form_shortcode( $atts ) {
 		return '<p>Wybrany aparat nie istnieje.</p>';
 	}
 
-	$base_price   = (float) $product->get_price();
-	$pakiet_price = 100.0;
+	$base_price = (float) $product->get_price();
+
+	// Stałe opłaty
+	$prowizja_price      = 99.0;  // zawsze
+	$przystosowanie_price = 100.0; // opcjonalnie
 
 	// Maksymalna gwarancja z meta produktu (1–3 lata)
 	$max_warranty = get_post_meta( $product_id, 'portalsluchu_max_warranty_years', true );
@@ -47,13 +81,17 @@ function portalsluchu_kup_form_shortcode( $atts ) {
 		$max_warranty = 1;
 	}
 
-	// Domyślnie: 5 dni
+	// Domyślnie: 5 dni rozruchowej
 	$warranty_years = 0;
 
-	if ( $_SERVER['REQUEST_METHOD'] === 'POST'
-		&& isset( $_POST['portalsluchu_kup_nonce'] )
-		&& wp_verify_nonce( $_POST['portalsluchu_kup_nonce'], 'portalsluchu_kup_form' ) ) {
+	// Domyślnie: przystosowanie niezaznaczone
+	$przystosowanie = 0;
 
+	if (
+		$_SERVER['REQUEST_METHOD'] === 'POST'
+		&& isset( $_POST['portalsluchu_kup_nonce'] )
+		&& wp_verify_nonce( $_POST['portalsluchu_kup_nonce'], 'portalsluchu_kup_form' )
+	) {
 		$warranty_years = isset( $_POST['warranty_years'] ) ? (int) $_POST['warranty_years'] : 0;
 
 		// Dozwolone: 0 (5 dni) albo 1..max_warranty
@@ -70,12 +108,23 @@ function portalsluchu_kup_form_shortcode( $atts ) {
 			$warranty_price = 790.0;
 		}
 
+		$przystosowanie = ! empty( $_POST['portalsluchu_przystosowanie'] ) ? 1 : 0;
+
+		// Zapis do sesji – to będzie użyte na /kasa do naliczenia fee
 		$data = array(
-			'product_id'      => $product_id,
-			'pakiet_startowy' => 1,
-			'pakiet_price'    => $pakiet_price,
-			'warranty_years'  => $warranty_years,
-			'warranty_price'  => $warranty_price,
+			'product_id'             => $product_id,
+
+			// Prowizja (zawsze)
+			'prowizja_enable'        => 1,
+			'prowizja_price'         => $prowizja_price,
+
+			// Przystosowanie (opcjonalnie)
+			'przystosowanie_enable'  => $przystosowanie,
+			'przystosowanie_price'   => $przystosowanie ? $przystosowanie_price : 0.0,
+
+			// Gwarancja
+			'warranty_years'         => $warranty_years,
+			'warranty_price'         => $warranty_price,
 		);
 
 		if ( WC()->session ) {
@@ -95,32 +144,37 @@ function portalsluchu_kup_form_shortcode( $atts ) {
 
 	ob_start();
 	?>
-	<h2>Formularz zakupu aparatu</h2>
-	<p><strong>Aparat:</strong> <?php echo esc_html( $product->get_name() ); ?>, cena aparatu: <?php echo wc_price( $base_price ); ?></p>
+	<p><strong>Aparat:</strong> <?php echo esc_html( $product->get_name() ); ?>, <br />cena aparatu: <?php echo wc_price( $base_price ); ?></p>
 
 	<form method="post" class="portalsluchu-kup-form" id="portalsluchu_kup_form">
 		<?php wp_nonce_field( 'portalsluchu_kup_form', 'portalsluchu_kup_nonce' ); ?>
 
-		<h3>Pakiet startowy</h3>
+		<h3>Opłaty</h3>
+
 		<p>
 			<label>
 				<input type="checkbox" checked="checked" disabled="disabled">
-				Pakiet startowy (<?php echo wc_price( $pakiet_price ); ?>) – w zestawie otrzymujesz kabelek oraz ładowarkę przetestowaną przez nasz serwis.
+				Prowizja za sprawdzenie oraz zakup aparatu słuchowego przez nasz portal – <?php echo wc_price( $prowizja_price ); ?>
 			</label>
-			<input type="hidden" name="pakiet_startowy" value="1">
+			<input type="hidden" name="portalsluchu_prowizja" value="1">
+		</p>
+
+		<p style="margin-top:12px;">
+			<label>
+				<input type="checkbox" name="portalsluchu_przystosowanie" value="1" <?php checked( $przystosowanie, 1 ); ?>>
+				Przystosowanie aparatu słuchowego do Twojego ubytku słuchu – <?php echo wc_price( $przystosowanie_price ); ?>
+			</label>
+
+			<details style="margin-top:6px; margin-left:22px;">
+				<summary>Szczegóły</summary>
+				<p style="margin:6px 0 0;">
+					Zakup aparatu słuchowego przez nasz portal nie oznacza, że aparat jest dopasowany do Twojego ubytku słuchu.
+				</p>
+			</details>
 		</p>
 
 		<hr>
-
-		<h3>Dostawa</h3>
-		<p style="margin-top:0; color:#555;">
-			Formę dostawy (dojazd / odbiór w salonie / kurier) wybierzesz na stronie <strong>/kasa</strong>.
-		</p>
-
-		<hr>
-
 		<h3>Gwarancja</h3>
-
 		<p>
 			<label>
 				<input type="radio" name="warranty_years" value="0" <?php checked( $warranty_years, 0 ); ?> />
@@ -160,8 +214,8 @@ function portalsluchu_kup_form_shortcode( $atts ) {
 add_shortcode( 'portalsluchu_kup_form', 'portalsluchu_kup_form_shortcode' );
 
 /**
- * Doliczanie opłat (pakiet + gwarancja płatna) na podstawie sesji.
- * 0 (5 dni) nie dodaje fee.
+ * Doliczanie opłat (prowizja + przystosowanie + gwarancja płatna) na podstawie sesji.
+ * 5 dni gwarancji nie dodaje fee.
  */
 function portalsluchu_kup_add_fees( $cart ) {
 	if ( is_admin() && ! defined( 'DOING_AJAX' ) ) return;
@@ -170,10 +224,17 @@ function portalsluchu_kup_add_fees( $cart ) {
 	$data = WC()->session->get( 'portalsluchu_kup_data' );
 	if ( ! $data || ! is_array( $data ) ) return;
 
-	if ( ! empty( $data['pakiet_startowy'] ) && ! empty( $data['pakiet_price'] ) ) {
-		$cart->add_fee( 'Pakiet startowy', (float) $data['pakiet_price'] );
+	// Prowizja (zawsze)
+	if ( ! empty( $data['prowizja_enable'] ) && ! empty( $data['prowizja_price'] ) ) {
+		$cart->add_fee( 'Prowizja', (float) $data['prowizja_price'] );
 	}
 
+	// Przystosowanie (opcjonalne)
+	if ( ! empty( $data['przystosowanie_enable'] ) && ! empty( $data['przystosowanie_price'] ) ) {
+		$cart->add_fee( 'Przystosowanie aparatu słuchowego do Twojego ubytku słuchu', (float) $data['przystosowanie_price'] );
+	}
+
+	// Gwarancja (tylko płatne warianty)
 	$years = isset( $data['warranty_years'] ) ? (int) $data['warranty_years'] : 0;
 	$price = isset( $data['warranty_price'] ) ? (float) $data['warranty_price'] : 0.0;
 
@@ -198,7 +259,7 @@ function portalsluchu_kup_save_order_meta( $order, $data ) {
 add_action( 'woocommerce_checkout_create_order', 'portalsluchu_kup_save_order_meta', 25, 2 );
 
 /**
- * Wyświetlanie gwarancji w mailach i w szczegółach zamówienia (bez fee).
+ * Informacja o gwarancji w mailach i szczegółach zamówienia.
  */
 function portalsluchu_kup_get_warranty_label_from_order( $order ) {
 	$kup_data = $order->get_meta( '_portalsluchu_kup_data', true );
@@ -235,3 +296,4 @@ add_action( 'woocommerce_order_details_after_order_table', function( $order ) {
 
 	echo '<p><strong>Gwarancja:</strong> ' . esc_html( $label ) . '</p>';
 }, 25 );
+
