@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name: portalsluchu – Mini kontakt + bramka do formularza sprzedającego
- * Description: Pokazuje mini-formularz uzupełnienia imienia i telefonu (dla zalogowanych). Po uzupełnieniu wyświetla shortcode formularza sprzedającego z nowoczesnym stylem przycisków.
+ * Description: Pokazuje mini-formularz uzupełnienia imienia i telefonu (dla zalogowanych). Po uzupełnieniu wyświetla shortcode formularza sprzedającego z nowoczesnym, responsywnym stylem.
  * Author: portalsluchu.pl
- * Version: 1.1.0
+ * Version: 1.3.2
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
@@ -17,194 +17,253 @@ function portalsluchu_kontakt_mini_css() {
 	$done = true;
 
 	$css = '
-	/* ===== Mini kontakt card ===== */
-	.ps-contact-card{
-		--ps-border: rgba(15,23,42,.12);
+	:root{
+		--ps-brand: #0ea5a8;
+		--ps-brand-dark: #0f766e;
 		--ps-text: #0f172a;
-		--ps-muted: rgba(15,23,42,.65);
-		--ps-warn-bg1: rgba(255, 251, 235, 1);
-		--ps-warn-bg2: rgba(255, 255, 255, 1);
-		--ps-warn-border: rgba(245, 158, 11, .45);
-		--ps-danger-bg: rgba(254, 242, 242, 1);
-		--ps-danger-border: rgba(220, 38, 38, .35);
-		--ps-success-bg: rgba(236, 253, 245, 1);
-		--ps-success-border: rgba(16, 185, 129, .35);
+		--ps-muted: rgba(15,23,42,.62);
+		--ps-border: rgba(15,23,42,.12);
 		--ps-radius: 16px;
+	}
 
+	.ps-contact-card{
 		margin: 18px 0;
 		padding: 16px 18px;
 		border-radius: var(--ps-radius);
-		border: 1px solid var(--ps-warn-border);
-		background: linear-gradient(180deg, var(--ps-warn-bg1) 0%, var(--ps-warn-bg2) 100%);
+		border: 1px solid rgba(14,165,168,.30);
+		background: linear-gradient(180deg, rgba(240,253,250,1) 0%, rgba(255,255,255,1) 100%);
 		box-shadow: 0 10px 24px rgba(0,0,0,.06);
 		font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
 		color: var(--ps-text);
 	}
+	.ps-contact-title{ font-size: 18px; font-weight: 900; letter-spacing: .2px; margin: 0 0 6px 0; }
+	.ps-contact-desc{ margin: 0 0 14px 0; color: var(--ps-muted); font-size: 14px; line-height: 1.45; }
 
-	.ps-contact-title{
-		font-size: 18px;
-		font-weight: 800;
-		letter-spacing: .2px;
-		margin: 0 0 6px 0;
-	}
+	.ps-contact-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:end; }
+	@media (max-width: 680px){ .ps-contact-grid{ grid-template-columns:1fr; } }
 
-	.ps-contact-desc{
-		margin: 0 0 14px 0;
-		color: var(--ps-muted);
-		font-size: 14px;
-		line-height: 1.45;
-	}
-
-	.ps-contact-grid{
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 12px;
-		align-items: end;
-	}
-
-	@media (max-width: 680px){
-		.ps-contact-grid{ grid-template-columns: 1fr; }
-	}
-
-	.ps-field label{
-		display:block;
-		font-weight: 700;
-		font-size: 13px;
-		margin: 0 0 6px 0;
-	}
-
+	.ps-field label{ display:block; font-weight:800; font-size:13px; margin:0 0 6px 0; }
 	.ps-field input{
-		width: 100%;
-		max-width: 520px;
-		padding: 11px 12px;
-		border-radius: 12px;
-		border: 1px solid rgba(15,23,42,.18);
-		background: #fff;
-		outline: none;
-		font-size: 15px;
+		width:100%;
+		padding:12px 12px;
+		border-radius:12px;
+		border:1px solid rgba(15,23,42,.18);
+		background:#fff;
+		outline:none;
+		font-size:15px;
 		transition: box-shadow .15s ease, border-color .15s ease;
 	}
-
 	.ps-field input:focus{
-		border-color: rgba(37, 99, 235, .45);
-		box-shadow: 0 0 0 4px rgba(37, 99, 235, .12);
+		border-color: rgba(14,165,168,.55);
+		box-shadow: 0 0 0 4px rgba(14,165,168,.14);
 	}
 
-	.ps-actions{
-		display:flex;
-		gap: 10px;
-		align-items:center;
-		flex-wrap: wrap;
-		margin-top: 14px;
-	}
+	.ps-actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:14px; }
 
 	.ps-btn{
-		appearance: none;
-		border: 0;
-		border-radius: 999px;
-		padding: 12px 18px;
-		font-weight: 800;
-		letter-spacing: .2px;
-		cursor: pointer;
-		text-decoration: none;
+		appearance:none;
+		border:0;
+		border-radius:999px;
+		padding:12px 18px;
+		font-weight:900;
+		letter-spacing:.2px;
+		cursor:pointer;
 		display:inline-flex;
 		align-items:center;
 		justify-content:center;
-		gap: 8px;
-		min-height: 48px;
+		min-height:48px;
+		text-decoration:none;
 	}
-
 	.ps-btn-primary{
-		background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
-		color: #fff;
-		box-shadow: 0 12px 22px rgba(37, 99, 235, .22);
+		background: linear-gradient(180deg, var(--ps-brand) 0%, var(--ps-brand-dark) 100%);
+		color:#fff;
+		box-shadow: 0 12px 22px rgba(14,165,168,.22);
 		transition: transform .08s ease, filter .15s ease, box-shadow .15s ease;
 	}
+	.ps-btn-primary:hover{ filter:brightness(1.03); transform:translateY(-1px); box-shadow:0 16px 28px rgba(14,165,168,.28); }
+	.ps-btn-primary:focus-visible{ outline:none; box-shadow:0 0 0 4px rgba(14,165,168,.20), 0 16px 28px rgba(14,165,168,.28); }
 
-	.ps-btn-primary:hover{ filter: brightness(1.03); transform: translateY(-1px); box-shadow: 0 16px 28px rgba(37, 99, 235, .28); }
-	.ps-btn-primary:active{ transform: translateY(0); filter: brightness(.98); }
-
-	.ps-btn-primary:focus-visible{
-		outline: none;
-		box-shadow: 0 0 0 4px rgba(37, 99, 235, .20), 0 16px 28px rgba(37, 99, 235, .28);
+	.ps-btn-ghost{
+		background: rgba(14,165,168,.10);
+		color: rgba(15,23,42,.92);
+		border: 1px solid rgba(14,165,168,.35);
 	}
 
-	.ps-hint{ font-size: 12px; color: rgba(15,23,42,.55); }
+	.ps-hint{ font-size:12px; color: rgba(15,23,42,.55); }
 
-	.ps-alert{
-		margin: 12px 0 0 0;
-		padding: 10px 12px;
-		border-radius: 12px;
+	.ps-alert{ margin: 12px 0 0 0; padding:10px 12px; border-radius:12px; border:1px solid var(--ps-border); font-size:13px; line-height:1.4; }
+	.ps-alert-danger{ background: rgba(254,242,242,1); border-color: rgba(220,38,38,.35); color:#991b1b; }
+	.ps-alert-success{ background: rgba(236,253,245,1); border-color: rgba(16,185,129,.35); color:#065f46; }
+	.ps-required{ color:#b91c1c; font-weight:900; }
+
+	/* ===== Seller form skin (scoped) ===== */
+	.ps-seller-form-wrap{
+		font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+		color: var(--ps-text);
+	}
+
+	.ps-seller-form-wrap .ps-sell-layout{
+		max-width: 980px;
+		margin: 0 auto;
+		display: grid;
+		grid-template-columns: 280px 1fr;
+		gap: 18px;
+		align-items: start;
+	}
+	@media (max-width: 900px){
+		.ps-seller-form-wrap .ps-sell-layout{ grid-template-columns: 1fr; }
+	}
+
+	.ps-seller-form-wrap .ps-sidecard,
+	.ps-seller-form-wrap .ps-card{
 		border: 1px solid var(--ps-border);
-		font-size: 13px;
-		line-height: 1.4;
+		border-radius: var(--ps-radius);
+		background: linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(255,255,255,1) 100%);
+		box-shadow: 0 10px 24px rgba(0,0,0,.04);
+		padding: 14px 16px;
 	}
 
-	.ps-alert-danger{ background: var(--ps-danger-bg); border-color: var(--ps-danger-border); color: #991b1b; }
-	.ps-alert-success{ background: var(--ps-success-bg); border-color: var(--ps-success-border); color: #065f46; }
-
-	.ps-required{ color: #b91c1c; font-weight: 900; }
-
-	/* ===== Seller form button styles (scoped) ===== */
-	.ps-seller-form-wrap input[type="submit"],
-	.ps-seller-form-wrap button,
-	.ps-seller-form-wrap .button,
-	.ps-seller-form-wrap .wpforms-submit,
-	.ps-seller-form-wrap .gform_button,
-	.ps-seller-form-wrap .wpcf7-submit{
-		appearance: none;
-		border: 0 !important;
-		border-radius: 999px !important;
-		padding: 14px 20px !important;
-		min-height: 50px;
-		font-size: 16px !important;
-		font-weight: 800 !important;
+	.ps-seller-form-wrap .ps-card-title{
+		font-weight: 950;
+		font-size: 16px;
 		letter-spacing: .2px;
-		cursor: pointer;
-		text-decoration: none;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
+		margin: 0 0 10px 0;
+	}
+
+	.ps-seller-form-wrap .ps-muted{
+		color: var(--ps-muted);
+		font-size: 13px;
+		line-height: 1.45;
+		margin: 0;
+	}
+
+	.ps-seller-form-wrap .ps-grid{
+		display:grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 12px;
+	}
+	@media (max-width: 720px){
+		.ps-seller-form-wrap .ps-grid{ grid-template-columns: 1fr; }
+	}
+
+	.ps-seller-form-wrap .ps-field{ margin: 0 0 12px 0; }
+	.ps-seller-form-wrap .ps-field label{
+		display:block;
+		font-weight: 850;
+		font-size: 13px;
+		margin: 0 0 6px 0;
+		color: rgba(15,23,42,.88);
+	}
+
+	.ps-seller-form-wrap .ps-field input[type="text"],
+	.ps-seller-form-wrap .ps-field input[type="number"],
+	.ps-seller-form-wrap .ps-field input[type="email"],
+	.ps-seller-form-wrap .ps-field input[type="tel"],
+	.ps-seller-form-wrap .ps-field select,
+	.ps-seller-form-wrap .ps-field textarea{
+		width: 100%;
+		box-sizing: border-box;
+		padding: 12px 12px;
+		border-radius: 12px;
+		border: 1px solid rgba(15,23,42,.18);
+		background: #fff;
+		font-size: 15px;
+		outline: none;
+		transition: box-shadow .15s ease, border-color .15s ease;
+	}
+	.ps-seller-form-wrap .ps-field textarea{ min-height: 140px; resize: vertical; }
+
+	.ps-seller-form-wrap .ps-field input:focus,
+	.ps-seller-form-wrap .ps-field select:focus,
+	.ps-seller-form-wrap .ps-field textarea:focus{
+		border-color: rgba(14,165,168,.55);
+		box-shadow: 0 0 0 4px rgba(14,165,168,.14);
+	}
+
+	.ps-seller-form-wrap .ps-files .ps-file-row{
+		display:grid;
+		grid-template-columns: 180px 1fr;
 		gap: 10px;
+		align-items:center;
+		padding: 10px 0;
+		border-bottom: 1px dashed rgba(15,23,42,.12);
+	}
+	.ps-seller-form-wrap .ps-files .ps-file-row:last-child{ border-bottom:0; }
+	@media (max-width: 720px){
+		.ps-seller-form-wrap .ps-files .ps-file-row{ grid-template-columns: 1fr; }
+	}
 
-		color: #fff !important;
-		background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%) !important;
-		box-shadow: 0 14px 28px rgba(37, 99, 235, .22) !important;
+	.ps-seller-form-wrap .ps-file-input{
+		display:flex;
+		align-items:center;
+		gap: 10px;
+		flex-wrap: wrap;
+	}
+	.ps-seller-form-wrap .ps-file-native{
+		position:absolute;
+		left:-9999px;
+		width:1px;
+		height:1px;
+		overflow:hidden;
+	}
+	.ps-seller-form-wrap .ps-file-name{
+		font-size: 13px;
+		color: rgba(15,23,42,.62);
+		font-weight: 700;
+		word-break: break-word;
+	}
 
+	.ps-seller-form-wrap .ps-actions{
+		display:flex;
+		gap: 12px;
+		flex-wrap: wrap;
+		align-items: center;
+		margin-top: 14px;
+	}
+
+	.ps-seller-form-wrap .ps-btn{
+		appearance:none;
+		border:0;
+		border-radius: 999px;
+		padding: 14px 22px;
+		min-height: 52px;
+		font-size: 16px;
+		font-weight: 950;
+		letter-spacing: .25px;
+		cursor: pointer;
+		display:inline-flex;
+		align-items:center;
+		justify-content:center;
+		gap: 10px;
+		text-decoration:none;
+	}
+
+	.ps-seller-form-wrap .ps-btn-primary{
+		color:#fff;
+		background: linear-gradient(180deg, var(--ps-brand) 0%, var(--ps-brand-dark) 100%);
+		box-shadow: 0 16px 30px rgba(14,165,168,.22);
 		transition: transform .08s ease, filter .15s ease, box-shadow .15s ease;
 	}
-
-	.ps-seller-form-wrap input[type="submit"]:hover,
-	.ps-seller-form-wrap button:hover,
-	.ps-seller-form-wrap .button:hover,
-	.ps-seller-form-wrap .wpforms-submit:hover,
-	.ps-seller-form-wrap .gform_button:hover,
-	.ps-seller-form-wrap .wpcf7-submit:hover{
+	.ps-seller-form-wrap .ps-btn-primary:hover{
 		filter: brightness(1.04);
-		box-shadow: 0 18px 34px rgba(37, 99, 235, .28) !important;
+		box-shadow: 0 20px 38px rgba(14,165,168,.28);
 		transform: translateY(-1px);
 	}
-
-	.ps-seller-form-wrap input[type="submit"]:active,
-	.ps-seller-form-wrap button:active,
-	.ps-seller-form-wrap .button:active{
-		transform: translateY(0);
-		filter: brightness(.98);
+	.ps-seller-form-wrap .ps-btn:focus-visible{
+		outline:none;
+		box-shadow: 0 0 0 4px rgba(14,165,168,.20), 0 16px 30px rgba(14,165,168,.22);
+	}
+	@media (max-width: 720px){
+		.ps-seller-form-wrap .ps-btn{ width: 100%; }
 	}
 
-	.ps-seller-form-wrap input[type="submit"]:focus-visible,
-	.ps-seller-form-wrap button:focus-visible,
-	.ps-seller-form-wrap .button:focus-visible{
-		outline: none !important;
-		box-shadow: 0 0 0 4px rgba(37, 99, 235, .20), 0 18px 34px rgba(37, 99, 235, .28) !important;
-	}
-
-	@media (max-width: 680px){
-		.ps-seller-form-wrap input[type="submit"],
-		.ps-seller-form-wrap button,
-		.ps-seller-form-wrap .button{
-			width: 100% !important;
-		}
+	.ps-seller-form-wrap .portalsluchu-success,
+	.ps-seller-form-wrap .portalsluchu-error{
+		border-radius: 14px;
+		border: 1px solid var(--ps-border);
+		box-shadow: 0 10px 24px rgba(0,0,0,.04);
+		padding: 12px 16px;
+		margin-bottom: 16px;
 	}
 	';
 
@@ -215,9 +274,7 @@ add_action( 'wp_head', 'portalsluchu_kontakt_mini_css', 50 );
 add_shortcode( PORTALSLUCHU_KONTAKT_MINI_SHORTCODE, 'portalsluchu_kontakt_i_sprzedaz_shortcode' );
 
 function portalsluchu_kontakt_i_sprzedaz_shortcode( $atts ) {
-	if ( ! is_user_logged_in() ) {
-		return '';
-	}
+	if ( ! is_user_logged_in() ) return '';
 
 	$user_id = get_current_user_id();
 
@@ -238,14 +295,10 @@ function portalsluchu_kontakt_i_sprzedaz_shortcode( $atts ) {
 		$new_first = trim( $new_first );
 		$new_phone = trim( $new_phone );
 
-		if ( $new_first === '' ) {
-			$errors[] = 'Podaj proszę imię.';
-		}
+		if ( $new_first === '' ) $errors[] = 'Podaj proszę imię.';
 
 		$digits = preg_replace( '/\D+/', '', $new_phone );
-		if ( $digits === '' || strlen( $digits ) < 7 ) {
-			$errors[] = 'Podaj proszę poprawny numer telefonu.';
-		}
+		if ( $digits === '' || strlen( $digits ) < 7 ) $errors[] = 'Podaj proszę poprawny numer telefonu.';
 
 		if ( empty( $errors ) ) {
 			update_user_meta( $user_id, 'first_name', $new_first );
@@ -259,8 +312,7 @@ function portalsluchu_kontakt_i_sprzedaz_shortcode( $atts ) {
 	}
 
 	if ( $first_name === '' || $phone === '' ) {
-		ob_start();
-		?>
+		ob_start(); ?>
 		<div class="ps-contact-card">
 			<div class="ps-contact-title">Uzupełnij dane kontaktowe</div>
 			<p class="ps-contact-desc">
@@ -269,14 +321,10 @@ function portalsluchu_kontakt_i_sprzedaz_shortcode( $atts ) {
 
 			<?php if ( ! empty( $errors ) ) : ?>
 				<div class="ps-alert ps-alert-danger">
-					<?php foreach ( $errors as $e ) : ?>
-						<div><?php echo esc_html( $e ); ?></div>
-					<?php endforeach; ?>
+					<?php foreach ( $errors as $e ) : ?><div><?php echo esc_html( $e ); ?></div><?php endforeach; ?>
 				</div>
 			<?php elseif ( $success ) : ?>
-				<div class="ps-alert ps-alert-success">
-					Dane zapisane. Możesz teraz wypełnić formularz poniżej.
-				</div>
+				<div class="ps-alert ps-alert-success">Dane zapisane. Możesz teraz wypełnić formularz poniżej.</div>
 			<?php endif; ?>
 
 			<form method="post" style="margin-top:14px;">
@@ -304,6 +352,5 @@ function portalsluchu_kontakt_i_sprzedaz_shortcode( $atts ) {
 		return ob_get_clean();
 	}
 
-	// Dane są: pokaż formularz sprzedającego + nasze style w wrapperze
 	return '<div class="ps-seller-form-wrap">' . do_shortcode( '[' . PORTALSLUCHU_SELLER_FORM_SHORTCODE . ']' ) . '</div>';
 }

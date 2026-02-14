@@ -296,4 +296,39 @@ add_action( 'woocommerce_order_details_after_order_table', function( $order ) {
 
 	echo '<p><strong>Gwarancja:</strong> ' . esc_html( $label ) . '</p>';
 }, 25 );
+add_action( 'admin_post_ps_listing_fee', 'ps_listing_fee_post_handler' );
+add_action( 'admin_post_nopriv_ps_listing_fee', 'ps_listing_fee_post_handler' );
 
+function ps_listing_fee_post_handler() {
+	if ( ! function_exists( 'WC' ) ) {
+		wp_safe_redirect( home_url() );
+		exit;
+	}
+
+	// Nonce
+	if ( empty( $_POST['ps_listing_fee_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ps_listing_fee_nonce'] ) ), 'ps_listing_fee' ) ) {
+		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
+		exit;
+	}
+
+	$fee_product_id = isset( $_POST['fee_product_id'] ) ? (int) $_POST['fee_product_id'] : 0;
+	if ( $fee_product_id <= 0 ) {
+		wp_safe_redirect( wc_get_cart_url() );
+		exit;
+	}
+
+	if ( null === WC()->cart ) {
+		wc_load_cart();
+	}
+
+	WC()->cart->empty_cart( true );
+	$added = WC()->cart->add_to_cart( $fee_product_id, 1 );
+
+	if ( $added ) {
+		wp_safe_redirect( wc_get_checkout_url() );
+		exit;
+	}
+
+	wp_safe_redirect( wc_get_cart_url() );
+	exit;
+}
