@@ -1,0 +1,5 @@
+# Jeden kod pocztowy na linię, np.:
+# 00-001
+00-004
+00-044
+00-444

@@ -221,6 +221,24 @@ function portalsluchu_kup_add_fees( $cart ) {
 	if ( is_admin() && ! defined( 'DOING_AJAX' ) ) return;
 	if ( ! function_exists( 'WC' ) || ! WC()->session ) return;
 
+		// GUARD: jeśli koszyk zawiera WYŁĄCZNIE opłatę za wystawienie (1087),
+	// to nie doliczamy prowizji / gwarancji / przystosowania.
+	if ( function_exists( 'WC' ) && WC()->cart ) {
+		$items = WC()->cart->get_cart();
+		if ( ! empty( $items ) ) {
+			$fee_only = true;
+			foreach ( $items as $it ) {
+				if ( empty( $it['product_id'] ) || (int) $it['product_id'] !== 1087 ) {
+					$fee_only = false;
+					break;
+				}
+			}
+			if ( $fee_only ) {
+				return;
+			}
+		}
+	}
+
 	$data = WC()->session->get( 'portalsluchu_kup_data' );
 	if ( ! $data || ! is_array( $data ) ) return;
 
@@ -332,3 +350,25 @@ function ps_listing_fee_post_handler() {
 	wp_safe_redirect( wc_get_cart_url() );
 	exit;
 }
+/// --- newsletter ---
+add_filter( 'woocommerce_checkout_fields', function( $fields ) {
+	// Często występuje jako billing -> wc_billing_marketing
+	if ( isset( $fields['billing']['wc_billing_marketing'] ) ) {
+		unset( $fields['billing']['wc_billing_marketing'] );
+	}
+
+	// Czasem w innych instalacjach/by wtyczkach pole ma inną nazwę.
+	// Usuń wszystkie pola, które w label mają "exclusive emails" (case-insensitive).
+	foreach ( $fields as $section_key => $section_fields ) {
+		if ( ! is_array( $section_fields ) ) continue;
+		foreach ( $section_fields as $key => $def ) {
+			$label = isset( $def['label'] ) ? (string) $def['label'] : '';
+			if ( $label && stripos( $label, 'exclusive emails' ) !== false ) {
+				unset( $fields[ $section_key ][ $key ] );
+			}
+		}
+	}
+
+	return $fields;
+}, 999 );
+// --- /newsletter ---

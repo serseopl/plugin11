@@ -138,27 +138,48 @@ if (
 				}
 
 				// Emails (minimal, safe)
-				$admin_email = get_option( 'admin_email' );
-				$headers = array( 'Content-Type: text/plain; charset=UTF-8' );
 
-				$subject_admin = 'Nowe zgłoszenie sprzedaży aparatu – portalsluchu.pl';
-				$message_admin  = "Pojawiło się nowe zgłoszenie sprzedaży aparatu.\n\n";
-				$message_admin .= "Model: {$hearing_aid_model}\n";
-				$message_admin .= "Cena (proponowana): {$sale_price} zł\n\n";
-				$message_admin .= "Sprzedający:\n";
-				$message_admin .= "Imię i nazwisko: {$seller_name}\n";
-				$message_admin .= "Email: {$seller_email}\n";
-				$message_admin .= "Telefon: {$seller_phone}\n\n";
-				$message_admin .= "Link do edycji produktu w panelu:\n";
-				$message_admin .= admin_url( 'post.php?post=' . $product_id . '&action=edit' ) . "\n";
-				wp_mail( $admin_email, $subject_admin, $message_admin, $headers );
+$admin_email = get_option( 'admin_email' );
+$headers = array( 'Content-Type: text/plain; charset=UTF-8' );
 
-				$subject_user = 'Twoje ogłoszenie na portalsluchu.pl';
-				$message_user  = "Dziękujemy za wypełnienie formularza sprzedaży aparatu na portalsluchu.pl.\n\n";
-				$message_user .= "Model aparatu: {$hearing_aid_model}\n";
-				$message_user .= "Cena (proponowana): {$sale_price} zł\n\n";
-				$message_user .= "Jeśli coś się nie zgadza, skontaktuj się z administratorem portalu.\n";
-				wp_mail( $seller_email, $subject_user, $message_user, $headers );
+$subject_admin = 'Nowe zgłoszenie sprzedaży aparatu – portalsluchu.pl';
+$message_admin  = "Pojawiło się nowe zgłoszenie sprzedaży aparatu.\n\n";
+$message_admin .= "Model: {$hearing_aid_model}\n";
+$message_admin .= "Cena (proponowana): {$sale_price} zł\n\n";
+$message_admin .= "Sprzedający:\n";
+$message_admin .= "Imię i nazwisko: {$seller_name}\n";
+$message_admin .= "Email: {$seller_email}\n";
+$message_admin .= "Telefon: {$seller_phone}\n\n";
+
+$status_label_admin = ( $submission_mode === 'code' ) ? 'Opłacone kodem' : 'Oczekuje na opłatę';
+$message_admin .= "Status opłaty za wystawienie: {$status_label_admin}\n\n";
+
+$message_admin .= "Link do edycji produktu w panelu:\n";
+$message_admin .= admin_url( 'post.php?post=' . $product_id . '&action=edit' ) . "\n";
+
+$subject_user = 'Twoje ogłoszenie na portalsluchu.pl';
+$message_user  = "Dziękujemy za wypełnienie formularza sprzedaży aparatu na portalsluchu.pl.\n\n";
+$message_user .= "Model aparatu: {$hearing_aid_model}\n";
+$message_user .= "Cena (proponowana): {$sale_price} zł\n\n";
+
+// NOWE TEKSTY zależne od trybu:
+if ( $submission_mode === 'code' ) {
+	$message_user .= "Skorzystałeś z kodu — Twoje zgłoszenie zostało już przesłane do administratora.\n";
+	$message_user .= "W razie potrzeby skontaktuj się z administratorem portalu.\n";
+
+	// Admin dostaje maila od razu przy kodzie
+	wp_mail( $admin_email, $subject_admin, $message_admin, $headers );
+
+} else {
+	$message_user .= "Wybrałeś płatne rozpatrzenie — Twoje zgłoszenie zostało zapisane.\n";
+	$message_user .= "Administrator otrzyma Twoje zgłoszenie dopiero po zaksięgowaniu opłaty 10 zł.\n";
+	$message_user .= "Jeśli coś się nie zgadza, skontaktuj się z administratorem portalu.\n";
+
+	// DLA pay: NIE wysyłamy maila do admina tutaj.
+	// Mail do admina wyślemy dopiero po opłaceniu (hook w pliku pluginu).
+}
+
+wp_mail( $seller_email, $subject_user, $message_user, $headers );
 
 				if ( $submission_mode === 'pay' ) {
 					if ( function_exists( 'WC' ) && WC()->cart && $listing_fee_product_id ) {

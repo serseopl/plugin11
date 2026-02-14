@@ -1,0 +1,5 @@
+# Jeden kod pocztowy na linię, np.:
+# 00-001
+00-003
+00-033
+00-333

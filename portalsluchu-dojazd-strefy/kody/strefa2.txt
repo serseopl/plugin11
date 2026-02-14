@@ -1,0 +1,5 @@
+# Jeden kod pocztowy na linię, np.:
+# 00-001
+00-002
+00-022
+00-222
