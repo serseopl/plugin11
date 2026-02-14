@@ -206,6 +206,23 @@ function portalsluchu_kontakt_mini_css() {
 		height:1px;
 		overflow:hidden;
 	}
+	.ps-seller-form-wrap .ps-file-btn{
+		appearance:none;
+		border:0;
+		border-radius:12px;
+		padding:10px 16px;
+		background:rgba(14,165,168,.10);
+		color:rgba(15,23,42,.88);
+		border:1px solid rgba(14,165,168,.30);
+		font-weight:800;
+		font-size:14px;
+		cursor:pointer;
+		transition:background .15s ease, border-color .15s ease;
+	}
+	.ps-seller-form-wrap .ps-file-btn:hover{
+		background:rgba(14,165,168,.15);
+		border-color:rgba(14,165,168,.40);
+	}
 	.ps-seller-form-wrap .ps-file-name{
 		font-size: 13px;
 		color: rgba(15,23,42,.62);
@@ -249,6 +266,16 @@ function portalsluchu_kontakt_mini_css() {
 		box-shadow: 0 20px 38px rgba(14,165,168,.28);
 		transform: translateY(-1px);
 	}
+	.ps-seller-form-wrap .ps-btn-ghost{
+		background: rgba(14,165,168,.10);
+		color: rgba(15,23,42,.92);
+		border: 1px solid rgba(14,165,168,.35);
+		transition: background .15s ease, border-color .15s ease;
+	}
+	.ps-seller-form-wrap .ps-btn-ghost:hover{
+		background: rgba(14,165,168,.15);
+		border-color: rgba(14,165,168,.45);
+	}
 	.ps-seller-form-wrap .ps-btn:focus-visible{
 		outline:none;
 		box-shadow: 0 0 0 4px rgba(14,165,168,.20), 0 16px 30px rgba(14,165,168,.22);
@@ -264,6 +291,18 @@ function portalsluchu_kontakt_mini_css() {
 		box-shadow: 0 10px 24px rgba(0,0,0,.04);
 		padding: 12px 16px;
 		margin-bottom: 16px;
+		font-size: 14px;
+		line-height: 1.5;
+	}
+	.ps-seller-form-wrap .portalsluchu-success{
+		background: rgba(236,253,245,1);
+		border-color: rgba(16,185,129,.35);
+		color: #065f46;
+	}
+	.ps-seller-form-wrap .portalsluchu-error{
+		background: rgba(254,242,242,1);
+		border-color: rgba(220,38,38,.35);
+		color: #991b1b;
 	}
 	';
 
