@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'PORTALSLUCHU_LISTING_FEE_PRODUCT_ID' ) ) {
-	define( 'PORTALSLUCHU_LISTING_FEE_PRODUCT_ID', 921 );
+	define( 'PORTALSLUCHU_LISTING_FEE_PRODUCT_ID', 1087 );
 }
 if ( ! defined( 'PORTALSLUCHU_KURIER_FLAT_FEE' ) ) {
 	define( 'PORTALSLUCHU_KURIER_FLAT_FEE', 20.0 );
