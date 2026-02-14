@@ -16,27 +16,32 @@ define( 'PORTALSLUCHU_FEE_GUARD_PRODUCT_ID', 1087 );
 
 /**
  * Check if cart contains only the listing fee product (ID 1087)
+ * Returns true only if ALL cart items are the fee product (1087).
+ * Returns false for empty carts, carts with mixed products, or invalid cart items.
  */
 function portalsluchu_fee_guard_cart_has_only_fee() {
-if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
-return false;
-}
-
-$items = WC()->cart->get_cart();
-if ( empty( $items ) ) {
-return false;
-}
-
-foreach ( $items as $cart_item ) {
-if ( empty( $cart_item['product_id'] ) ) {
-return false;
-}
-if ( (int) $cart_item['product_id'] !== (int) PORTALSLUCHU_FEE_GUARD_PRODUCT_ID ) {
-return false;
-}
-}
-
-return true;
+	if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
+		return false;
+	}
+	
+	$items = WC()->cart->get_cart();
+	if ( empty( $items ) ) {
+		return false;
+	}
+	
+	foreach ( $items as $cart_item ) {
+		// Skip invalid cart items (safety check)
+		if ( empty( $cart_item['product_id'] ) ) {
+			return false;
+		}
+		// If any item is NOT the fee product, return false
+		if ( (int) $cart_item['product_id'] !== (int) PORTALSLUCHU_FEE_GUARD_PRODUCT_ID ) {
+			return false;
+		}
+	}
+	
+	// All items are the fee product
+	return true;
 }
 
 /**
