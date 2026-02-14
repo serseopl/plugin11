@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'PORTALSLUCHU_LISTING_FEE_PRODUCT_ID' ) ) {
-	define( 'PORTALSLUCHU_LISTING_FEE_PRODUCT_ID', 921 );
+	define( 'PORTALSLUCHU_LISTING_FEE_PRODUCT_ID', 1087 );
 }
 if ( ! defined( 'PORTALSLUCHU_KURIER_FLAT_FEE' ) ) {
 	define( 'PORTALSLUCHU_KURIER_FLAT_FEE', 20.0 );
@@ -97,17 +97,46 @@ function portalsluchu_kasa_get_active_postcode_from_post_data( array $pd ) {
  */
 add_filter( 'woocommerce_cart_needs_shipping', 'portalsluchu_kasa_force_needs_shipping', 20 );
 function portalsluchu_kasa_force_needs_shipping( $needs_shipping ) {
+	if ( portalsluchu_kasa_cart_has_only_listing_fee() ) {
+		return false;
+	}
 	return portalsluchu_kasa_selected_method_requires_shipping() ? true : $needs_shipping;
 }
 
 add_filter( 'woocommerce_cart_needs_shipping_address', 'portalsluchu_kasa_force_needs_shipping_address', 20 );
 function portalsluchu_kasa_force_needs_shipping_address( $needs_address ) {
+	if ( portalsluchu_kasa_cart_has_only_listing_fee() ) {
+		return false;
+	}
 	return portalsluchu_kasa_selected_method_requires_shipping() ? true : $needs_address;
 }
 
 add_filter( 'woocommerce_product_needs_shipping', 'portalsluchu_kasa_force_product_needs_shipping', 20, 2 );
 function portalsluchu_kasa_force_product_needs_shipping( $needs_shipping, $product ) {
+	if ( portalsluchu_kasa_cart_has_only_listing_fee() ) {
+		return false;
+	}
 	return portalsluchu_kasa_selected_method_requires_shipping() ? true : $needs_shipping;
+}
+
+add_filter( 'woocommerce_checkout_fields', 'portalsluchu_kasa_remove_shipping_required_for_fee_only', 20 );
+function portalsluchu_kasa_remove_shipping_required_for_fee_only( $fields ) {
+	if ( portalsluchu_kasa_cart_has_only_listing_fee() ) {
+		if ( isset( $fields['shipping'] ) && is_array( $fields['shipping'] ) ) {
+			foreach ( $fields['shipping'] as $key => $field ) {
+				$fields['shipping'][ $key ]['required'] = false;
+			}
+		}
+	}
+	return $fields;
+}
+
+add_filter( 'woocommerce_ship_to_different_address_checked', 'portalsluchu_kasa_no_separate_shipping_for_fee_only', 20 );
+function portalsluchu_kasa_no_separate_shipping_for_fee_only( $checked ) {
+	if ( portalsluchu_kasa_cart_has_only_listing_fee() ) {
+		return false;
+	}
+	return $checked;
 }
 
 function portalsluchu_kasa_render_checkout_section( $checkout = null ) {
