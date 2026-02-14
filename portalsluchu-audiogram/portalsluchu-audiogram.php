@@ -1,6 +1,6 @@
 <?php
 /**
- ** Plugin Name: portalsluchu – Audiogram produktu
+ * Plugin Name: portalsluchu – Audiogram produktu
  * Description: portalsluchu-audiogram / Metabox audiogramu i ustawień modelu aparatu (w tym maksymalna długość gwarancji) dla produktów WooCommerce. Dane audiogramu są przechowywane w meta 'serseo_audiogram' i mogą być współdzielone między produktami o tym samym modelu (meta 'hearing_aid_model').
  * Author: portalsluchu.pl
  * Version: 1.1.0
@@ -263,3 +263,4 @@ add_action( 'load-post.php', function() {
         portalsluchu_product_audiogram_maybe_autofill( $post );
     }
 });
+
