@@ -263,4 +263,3 @@ add_action( 'load-post.php', function() {
         portalsluchu_product_audiogram_maybe_autofill( $post );
     }
 });
-

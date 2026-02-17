@@ -3,7 +3,7 @@
 Plugin Name: portalsluchu – dojazd strefy (kody pocztowe)
 Description: Silnik stref dojazdu (kody z TXT) + AJAX. Bez własnych pól/checkboxów na checkout i bez własnego naliczania fee.
 Author: portalsluchu.pl
-Version: 1.1.1
+Version: 1.1.2
 */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -41,12 +41,13 @@ function portalsluchu_load_zone_codes( $filename ) {
 function portalsluchu_get_dojazd_for_postcode( $postcode ) {
 	$postcode = portalsluchu_normalize_postcode( $postcode );
 
+	// Cennik zaktualizowany (Strefa 1: 120, 2: 200, 3: 300, 4: 440, 5: 550)
 	$prices = array(
-		1 => 100.0,
+		1 => 120.0,
 		2 => 200.0,
 		3 => 300.0,
-		4 => 400.0,
-		5 => 450.0,
+		4 => 440.0,
+		5 => 550.0,
 	);
 
 	$plugin_dir = plugin_dir_path( __FILE__ );
@@ -59,6 +60,7 @@ function portalsluchu_get_dojazd_for_postcode( $postcode ) {
 		4 => $kody_dir . 'strefa4.txt',
 	);
 
+	// Domyślna strefa (5) - każda inna nie podana wyżej
 	$zone = 5;
 
 	if ( $postcode !== '' ) {
