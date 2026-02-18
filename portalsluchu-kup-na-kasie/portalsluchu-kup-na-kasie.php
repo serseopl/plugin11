@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name: portalsluchu – Dostawa na stronie "Kasa"
- * Description: Forma dostawy na /kasa: dojazd / salon / kurier (20 zł). Dolicza opłaty za dojazd i kuriera. Dla kurier+dojazd wymusza Woo shipping address. Dodano maskowanie kodu pocztowego (fix backspace) i płynne pola NIP/Firma pod checkboxem FV.
+ * Description: Forma dostawy na /kasa: dojazd / salon / kurier (20 zł). Dolicza opłaty za dojazd i kuriera. Dla kurier+dojazd wymusza Woo shipping address. Dodano maskowanie kodu pocztowego, płynne pola NIP/Firma oraz poprawioną logikę gwarancji (domyślnie 5 dni, pełna obsługa wartości 0).
  * Author: portalsluchu.pl
- * Version: 1.5.5
+ * Version: 1.6.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -111,6 +111,21 @@ function portalsluchu_kasa_force_product_needs_shipping( $needs_shipping, $produ
 }
 
 /**
+ * Pomocniczo: pobierz ID pierwszego produktu z koszyka.
+ */
+function portalsluchu_kasa_get_first_product_id_from_cart() {
+    if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
+        return 0;
+    }
+    foreach ( WC()->cart->get_cart() as $cart_item ) {
+        if ( ! empty( $cart_item['product_id'] ) ) {
+            return (int) $cart_item['product_id'];
+        }
+    }
+    return 0;
+}
+
+/**
  * Sekcja "Forma dostawy" – nie pokazujemy jej dla fee-only (1087).
  */
 function portalsluchu_kasa_render_checkout_section( $checkout = null ) {
@@ -126,8 +141,26 @@ function portalsluchu_kasa_render_checkout_section( $checkout = null ) {
 
     $GLOBALS['portalsluchu_kasa_rendered'] = true;
 
+    // --- LOGIKA GWARANCJI ---
+    // Domyślna wartość max_warranty to 0 (czyli tylko 5 dni).
+    $product_id   = portalsluchu_kasa_get_first_product_id_from_cart();
+    $max_warranty = 0; 
+
+    if ( $product_id ) {
+        $meta_max = get_post_meta( $product_id, 'portalsluchu_max_warranty_years', true );
+        // Sprawdzamy czy meta istnieje (nawet jeśli to '0')
+        if ( $meta_max !== '' && $meta_max !== false ) {
+            $val = intval( $meta_max );
+            if ( $val >= 0 && $val <= 3 ) {
+                $max_warranty = $val;
+            }
+        }
+    }
+
+    // Domyślne wartości wyboru – jeśli klient wraca do kasy, wczytamy z sesji
     $delivery_method = 'salon';
     $delivery_salon  = '';
+    $warranty_years  = 0; // Domyślnie 5 dni (0)
 
     if ( WC()->session ) {
         $saved = WC()->session->get( 'portalsluchu_checkout_data' );
@@ -137,6 +170,13 @@ function portalsluchu_kasa_render_checkout_section( $checkout = null ) {
             }
             if ( ! empty( $saved['delivery_salon'] ) ) {
                 $delivery_salon = $saved['delivery_salon'];
+            }
+            if ( isset( $saved['warranty_years'] ) ) {
+                $warranty_years = (int) $saved['warranty_years'];
+                // Walidacja: jeśli zapisana wartość jest większa niż dozwolona dla produktu, zresetuj do 0
+                if ( $warranty_years > $max_warranty ) {
+                    $warranty_years = 0;
+                }
             }
         }
     }
@@ -149,7 +189,6 @@ function portalsluchu_kasa_render_checkout_section( $checkout = null ) {
             Dojazd do klienta (cena zależna od kodu pocztowego)
         </label></p>
 
-        <!-- START: Nowa sekcja dla dojazdu -->
         <div id="portalsluchu_delivery_dojazd_box" style="margin-left:15px; margin-bottom:10px; <?php echo ( $delivery_method === 'dojazd' ) ? '' : 'display:none;'; ?>">
             <p style="font-size: 0.9em; margin-top: 5px; color:#555; margin-bottom:5px;">
                 Wpisz kod pocztowy — na jego podstawie wycena i możliwość dojazdu zostaną określone automatycznie.
@@ -158,7 +197,6 @@ function portalsluchu_kasa_render_checkout_section( $checkout = null ) {
                 Po złożeniu zamówienia skontaktujemy się mailowo w celu potwierdzenia wizyty i ustalenia terminu.
             </p>
         </div>
-        <!-- END: Nowa sekcja dla dojazdu -->
 
         <p><label>
             <input type="radio" name="portalsluchu_delivery_method" value="salon" <?php checked( $delivery_method, 'salon' ); ?> />
@@ -185,6 +223,44 @@ function portalsluchu_kasa_render_checkout_section( $checkout = null ) {
             <input type="radio" name="portalsluchu_delivery_method" value="kurier" <?php checked( $delivery_method, 'kurier' ); ?> />
             Kurier (stała opłata 20 zł)
         </label></p>
+
+        <hr>
+
+        <h3>Gwarancja</h3>
+        <p>
+            <!-- Opcja 0: 5 dni (zawsze dostępna) -->
+            <label>
+                <input type="radio" name="portalsluchu_warranty_years" value="0" <?php checked( $warranty_years, 0 ); ?> />
+                5 dni gwarancji rozruchowej (w cenie)
+            </label>
+            <br>
+
+            <!-- Opcja 1: 1 rok (tylko jeśli max >= 1) -->
+            <?php if ( $max_warranty >= 1 ) : ?>
+                <label>
+                    <input type="radio" name="portalsluchu_warranty_years" value="1" <?php checked( $warranty_years, 1 ); ?> />
+                    1 rok (+390 zł)
+                </label>
+                <br>
+            <?php endif; ?>
+
+            <!-- Opcja 2: 2 lata (tylko jeśli max >= 2) -->
+            <?php if ( $max_warranty >= 2 ) : ?>
+                <label>
+                    <input type="radio" name="portalsluchu_warranty_years" value="2" <?php checked( $warranty_years, 2 ); ?> />
+                    2 lata (+490 zł)
+                </label>
+                <br>
+            <?php endif; ?>
+
+            <!-- Opcja 3: 3 lata (tylko jeśli max >= 3) -->
+            <?php if ( $max_warranty >= 3 ) : ?>
+                <label>
+                    <input type="radio" name="portalsluchu_warranty_years" value="3" <?php checked( $warranty_years, 3 ); ?> />
+                    3 lata (+790 zł)
+                </label>
+            <?php endif; ?>
+        </p>
     </div>
 
     <script>
@@ -197,7 +273,6 @@ function portalsluchu_kasa_render_checkout_section( $checkout = null ) {
             var $dojazdBox = $('#portalsluchu_delivery_dojazd_box');
             
             if (animate) {
-                // Animacje (slideDown/Up) - spowolnione do 600ms
                 if (val === 'salon') {
                     if ($salonBox.is(':hidden')) $salonBox.slideDown(600);
                 } else {
@@ -210,7 +285,6 @@ function portalsluchu_kasa_render_checkout_section( $checkout = null ) {
                     if ($dojazdBox.is(':visible')) $dojazdBox.slideUp(600);
                 }
             } else {
-                // Startowe ustawienie (toggle bez animacji)
                 $salonBox.toggle(val === 'salon');
                 $dojazdBox.toggle(val === 'dojazd');
             }
@@ -220,18 +294,17 @@ function portalsluchu_kasa_render_checkout_section( $checkout = null ) {
             refreshBoxes(true);
             $('body').trigger('update_checkout');
         });
+        
+        // Zmiana gwarancji też odświeża sumę
+        $(document).on('change', 'input[name="portalsluchu_warranty_years"]', function() {
+            $('body').trigger('update_checkout');
+        });
 
         $(document).on('change', 'select[name="portalsluchu_delivery_salon"]', function() {
             $('body').trigger('update_checkout');
         });
 
-        // USUNIĘTO #billing_postcode i #shipping_postcode z tego listenera 'input', 
-        // aby nie resetował formularza podczas wpisywania.
-        $(document).on('change input', 'input[name="ship_to_different_address"], #ship-to-different-address-checkbox', function() {
-            $('body').trigger('update_checkout');
-        });
-
-        // Odświeżanie po opuszczeniu pola (blur/change) - to jest bezpieczne
+        // Obsługa change dla kodu pocztowego (bezpieczne odświeżanie po wyjściu z pola)
         $(document).on('change', '#billing_postcode, #shipping_postcode', function() {
             $('body').trigger('update_checkout');
         });
@@ -266,9 +339,14 @@ function portalsluchu_kasa_store_session_data() {
         ? sanitize_text_field( (string) $pd['portalsluchu_delivery_salon'] )
         : '';
 
+    $warranty_years = isset( $pd['portalsluchu_warranty_years'] )
+        ? (int) $pd['portalsluchu_warranty_years']
+        : 0;
+
     WC()->session->set( 'portalsluchu_checkout_data', array(
         'delivery_method' => $delivery_method,
         'delivery_salon'  => $delivery_salon,
+        'warranty_years'  => $warranty_years,
     ) );
 }
 add_action( 'woocommerce_checkout_update_order_review', 'portalsluchu_kasa_store_session_data' );
@@ -296,33 +374,63 @@ function portalsluchu_kasa_add_fees( $cart ) {
     }
 
     $delivery_method = isset( $data['delivery_method'] ) ? (string) $data['delivery_method'] : 'salon';
+    $warranty_years  = isset( $data['warranty_years'] ) ? (int) $data['warranty_years'] : 0;
 
+    // Kurier
     if ( $delivery_method === 'kurier' ) {
         $cart->add_fee( 'Kurier', (float) PORTALSLUCHU_KURIER_FLAT_FEE );
-        return;
     }
 
-    if ( $delivery_method !== 'dojazd' ) {
-        return;
+    // Gwarancja
+    // Pobranie max gwarancji z produktu (NAPRAWIONE: domyślnie 0, obsługa 0)
+    $product_id  = portalsluchu_kasa_get_first_product_id_from_cart();
+    $max_allowed = 0; // Default 0
+    if ( $product_id ) {
+        $meta_max = get_post_meta( $product_id, 'portalsluchu_max_warranty_years', true );
+        if ( $meta_max !== '' && $meta_max !== false ) {
+            $val = (int) $meta_max;
+            if ( $val >= 0 && $val <= 3 ) {
+                $max_allowed = $val;
+            }
+        }
     }
 
-    $pd = portalsluchu_kasa_get_checkout_post_data_array();
-    $postcode_raw = portalsluchu_kasa_get_active_postcode_from_post_data( $pd );
-
-    $digits = preg_replace( '/\D+/', '', (string) $postcode_raw );
-    if ( strlen( $digits ) !== 5 ) {
-        return;
+    // Walidacja: jeśli wybrano więcej niż można, lub ujemną (co niemożliwe), zeruj.
+    if ( $warranty_years < 0 || $warranty_years > $max_allowed ) {
+        $warranty_years = 0;
     }
 
-    $postcode = substr( $digits, 0, 2 ) . '-' . substr( $digits, 2, 3 );
+    $warranty_price = 0.0;
+    if ( $warranty_years === 1 ) {
+        $warranty_price = 390.0;
+    } elseif ( $warranty_years === 2 ) {
+        $warranty_price = 490.0;
+    } elseif ( $warranty_years === 3 ) {
+        $warranty_price = 790.0;
+    }
 
-    if ( function_exists( 'portalsluchu_dojazd_calculate_for_postcode' ) ) {
-        $res   = portalsluchu_dojazd_calculate_for_postcode( $postcode );
-        $zone  = isset( $res['zone'] ) ? (int) $res['zone'] : 5;
-        $price = isset( $res['price'] ) ? (float) $res['price'] : 0.0;
+    if ( $warranty_price > 0 ) {
+        $cart->add_fee( 'Gwarancja ' . $warranty_years . ' lata', $warranty_price );
+    }
 
-        if ( $price > 0 ) {
-            $cart->add_fee( 'Dojazd do klienta (strefa ' . $zone . ')', $price );
+    // Dojazd
+    if ( $delivery_method === 'dojazd' ) {
+        $pd = portalsluchu_kasa_get_checkout_post_data_array();
+        $postcode_raw = portalsluchu_kasa_get_active_postcode_from_post_data( $pd );
+
+        $digits = preg_replace( '/\D+/', '', (string) $postcode_raw );
+        if ( strlen( $digits ) === 5 ) {
+            $postcode = substr( $digits, 0, 2 ) . '-' . substr( $digits, 2, 3 );
+
+            if ( function_exists( 'portalsluchu_dojazd_calculate_for_postcode' ) ) {
+                $res   = portalsluchu_dojazd_calculate_for_postcode( $postcode );
+                $zone  = isset( $res['zone'] ) ? (int) $res['zone'] : 5;
+                $price = isset( $res['price'] ) ? (float) $res['price'] : 0.0;
+
+                if ( $price > 0 ) {
+                    $cart->add_fee( 'Dojazd do klienta (strefa ' . $zone . ')', $price );
+                }
+            }
         }
     }
 }
@@ -486,9 +594,9 @@ add_action( 'wp_footer', function() {
             // Znajdź pole checkboxa "Chcę FV"
             var $invoiceField = $('#portalsluchu_want_invoice_field');
 
-            // Znajdź pola firmowe
-            var $company = firstExistingField(['#billing_company_field', '#portalsluchu_company_field']);
-            var $nip     = firstExistingField(['#billing_nip_field', '#billing_vat_field', '#billing_tax_number_field', '#portalsluchu_nip_field']);
+            // Znajdź pola firmowe (DODANO ID widoczne na screenie użytkownika)
+            var $company = firstExistingField(['#billing_company_field', '#portalsluchu_invoice_company_field', '#portalsluchu_company_field']);
+            var $nip     = firstExistingField(['#billing_nip_field', '#portalsluchu_billing_nip_field', '#billing_vat_field', '#billing_tax_number_field', '#portalsluchu_nip_field']);
 
             // Standardowa kolejność pozostałych pól
             var ordered = [
@@ -596,6 +704,10 @@ add_action( 'wp_footer', function() {
             // USUNIĘTO automatyczne wywoływanie 'update_checkout' podczas pisania!
             // To rozwiąże problem utraty fokusu przy kasowaniu.
             // Walidacja kosztu dostawy nastąpi po kliknięciu poza pole (event 'change' obsłużony wyżej).
+            // LUB gdy kod jest pełny (6 znaków: 00-000), żeby user widział koszt od razu.
+            if (formatted.length === 6) {
+                 $('body').trigger('update_checkout');
+            }
         });
 
     })(jQuery);

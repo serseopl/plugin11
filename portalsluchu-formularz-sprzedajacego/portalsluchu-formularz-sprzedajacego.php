@@ -1,9 +1,9 @@
 <?php
 /*
 Plugin Name: portalsluchu – Formularz sprzedającego
-Description: portalsluchu-formularz-sprzedajacego / Formularz do zgłaszania sprzedaży aparatu słuchowego, z obsługą kodu rabatowego oraz opłaty 10 zł przez WooCommerce.
+Description: portalsluchu-formularz-sprzedajacego / Formularz do zgłaszania sprzedaży aparatu słuchowego. Obsługuje kod rabatowy 'wystawzazero' (wyświetla sukces i czyści pola) oraz opłatę 10 zł przez WooCommerce.
 Author: portalsluchu.pl
-Version: 1.1.0
+Version: 1.1.1
 */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -11,11 +11,69 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Style CSS dla komunikatu sukcesu.
+ */
+function portalsluchu_seller_form_styles() {
+    ?>
+    <style>
+        .ps-seller-success-box {
+            text-align: center;
+            background: #f0fdf4; /* Bardzo jasny zielony */
+            border: 1px solid #bbf7d0; /* Jasny zielony obrys */
+            color: #15803d; /* Ciemny zielony tekst */
+            padding: 30px 20px;
+            border-radius: 12px;
+            margin: 20px auto 40px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            max-width: 650px;
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        }
+        .ps-seller-success-icon {
+            font-size: 42px;
+            margin-bottom: 15px;
+            display: block;
+            line-height: 1;
+        }
+        .ps-seller-success-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: block;
+            color: #166534;
+        }
+        .ps-seller-success-text {
+            font-size: 16px;
+            line-height: 1.5;
+            opacity: 0.95;
+        }
+    </style>
+    <?php
+}
+add_action( 'wp_footer', 'portalsluchu_seller_form_styles' );
+
+/**
  * Shortcode: [portalsluchu_formularz_sprzedajacy]
  */
 function portalsluchu_formularz_sprzedajacego_shortcode() {
     ob_start();
+
+    // Sprawdź czy wróciliśmy z sukcesem (po przekierowaniu)
+    if ( isset( $_GET['ps_status'] ) && $_GET['ps_status'] === 'success' ) {
+        ?>
+        <div class="ps-seller-success-box">
+            <div class="ps-seller-success-icon">✅</div>
+            <span class="ps-seller-success-title">Dziękujemy!</span>
+            <div class="ps-seller-success-text">
+                Formularz został wysłany do administratora.
+            </div>
+        </div>
+        <?php
+    }
+
+    // Dołączamy szablon formularza.
+    // Dzięki przekierowaniu w ps_handle_listing_fee, formularz będzie wyzerowany (czysty POST).
     include __DIR__ . '/form-template.php';
+    
     return ob_get_clean();
 }
 add_shortcode( 'portalsluchu_formularz_sprzedajacy', 'portalsluchu_formularz_sprzedajacego_shortcode' );
@@ -184,8 +242,9 @@ function portalsluchu_wc_user_email_shortcode() {
     return esc_html( $email );
 }
 add_shortcode( 'wc_user_email', 'portalsluchu_wc_user_email_shortcode' );
-// --- Portalsluchu: handler opłaty za wystawienie (variant B) ---
-// Wklej ten blok na końcu pliku głównego pluginu.
+
+// --- Portalsluchu: handler opłaty za wystawienie (variant B - modified) ---
+// Obsługuje logikę wysyłki formularza i przekierowania.
 
 add_action( 'template_redirect', 'ps_handle_listing_fee' );
 function ps_handle_listing_fee() {
@@ -204,15 +263,25 @@ function ps_handle_listing_fee() {
         exit;
     }
 
-    // Jeśli wpisano kod darmowego wystawienia, pomijamy dodawanie opłaty
+    // --- CASE 1: Darmowe wystawienie (kod rabatowy) ---
     $free_code = 'wystawzazero';
     $entered_code = isset( $_POST['coupon_code'] ) ? sanitize_text_field( wp_unslash( $_POST['coupon_code'] ) ) : '';
+    
     if ( $entered_code && strcasecmp( $entered_code, $free_code ) === 0 ) {
-        // darmowe zgłoszenie — nic nie dodajemy
-        return;
+        
+        // WAŻNE: Tutaj powinien nastąpić zapis danych formularza (np. utworzenie szkicu produktu).
+        // Jeśli masz logikę zapisu w innym miejscu (np. w pliku form-template.php), 
+        // przenieś ją tutaj lub podepnij pod ten hook:
+        do_action( 'portalsluchu_save_seller_form_data', $_POST );
+
+        // Przekierowanie na ten sam URL z parametrem sukcesu. 
+        // To czyści tablicę $_POST i wyzeruje formularz.
+        $redirect_url = add_query_arg( 'ps_status', 'success', wp_get_referer() ? wp_get_referer() : home_url() );
+        wp_safe_redirect( $redirect_url );
+        exit;
     }
  
-    // ID produktu reprezentującego opłatę za wystawienie (USTAW TUTAJ ID z admina)
+    // --- CASE 2: Płatne wystawienie (10 zł) ---
     $fee_product_id = 1087; // <-- ZMIEŃ NA SWOJE ID jeśli inny
 
     if ( ! class_exists( 'WooCommerce' ) ) {
@@ -225,13 +294,16 @@ function ps_handle_listing_fee() {
         wc_load_cart();
     }
 
-    // Opcjonalnie: wyczyść koszyk (usuń tę linię jeśli chcesz dodać opłatę obok innych produktów)
     WC()->cart->empty_cart( true );
 
     // Dodaj produkt opłaty do koszyka
     $added = WC()->cart->add_to_cart( intval( $fee_product_id ) );
 
     if ( $added ) {
+        // Również tutaj przydałoby się zapisać dane tymczasowo (np. w sesji) 
+        // lub utworzyć szkic produktu przed przekierowaniem do kasy.
+        do_action( 'portalsluchu_save_seller_form_data_before_checkout', $_POST );
+        
         wp_safe_redirect( wc_get_checkout_url() );
         exit;
     } else {
@@ -239,63 +311,4 @@ function ps_handle_listing_fee() {
         wp_safe_redirect( wc_get_cart_url() );
         exit;
     }
-}
-/**
- * Po opłaceniu zamówienia z opłatą za wystawienie (1087) wyślij mail do admina.
- * Listing ID jest zapisany w sesji jako 'portalsluchu_listing_id' i przenoszony do meta zamówienia:
- * _portalsluchu_listing_id (patrz woocommerce_checkout_create_order).
- */
-add_action( 'woocommerce_payment_complete', 'portalsluchu_notify_admin_after_listing_fee_paid', 20 );
-function portalsluchu_notify_admin_after_listing_fee_paid( $order_id ) {
-	if ( ! function_exists( 'wc_get_order' ) ) return;
-
-	$order = wc_get_order( $order_id );
-	if ( ! $order ) return;
-
-	// Sprawdź czy zamówienie dotyczy opłaty 1087
-	$has_fee = false;
-	foreach ( $order->get_items() as $item ) {
-		$product_id = (int) $item->get_product_id();
-		if ( $product_id === 1087 ) {
-			$has_fee = true;
-			break;
-		}
-	}
-	if ( ! $has_fee ) return;
-
-	$listing_id = (int) $order->get_meta( '_portalsluchu_listing_id' );
-	if ( $listing_id <= 0 ) return;
-
-	// Nie wysyłaj 2x
-	if ( $order->get_meta( '_portalsluchu_admin_notified' ) ) return;
-
-	// Oznacz listing jako opłacony
-	update_post_meta( $listing_id, 'listing_payment_status', 'paid' );
-
-	// Zbierz dane do maila
-	$admin_email = get_option( 'admin_email' );
-	$headers = array( 'Content-Type: text/plain; charset=UTF-8' );
-
-	$hearing_aid_model = (string) get_post_meta( $listing_id, 'hearing_aid_model', true );
-	$sale_price        = (string) get_post_meta( $listing_id, 'sale_price', true );
-	$seller_name       = (string) get_post_meta( $listing_id, 'seller_name', true );
-	$seller_email      = (string) get_post_meta( $listing_id, 'seller_email', true );
-	$seller_phone      = (string) get_post_meta( $listing_id, 'seller_phone', true );
-
-	$subject_admin = 'Nowe zgłoszenie sprzedaży aparatu – portalsluchu.pl (OPŁACONE)';
-	$message_admin  = "Pojawiło się nowe zgłoszenie sprzedaży aparatu.\n\n";
-	$message_admin .= "Model: {$hearing_aid_model}\n";
-	$message_admin .= "Cena (proponowana): {$sale_price} zł\n\n";
-	$message_admin .= "Sprzedający:\n";
-	$message_admin .= "Imię i nazwisko: {$seller_name}\n";
-	$message_admin .= "Email: {$seller_email}\n";
-	$message_admin .= "Telefon: {$seller_phone}\n\n";
-	$message_admin .= "Status opłaty za wystawienie: Opłacone\n\n";
-	$message_admin .= "Link do edycji produktu w panelu:\n";
-	$message_admin .= admin_url( 'post.php?post=' . $listing_id . '&action=edit' ) . "\n";
-
-	wp_mail( $admin_email, $subject_admin, $message_admin, $headers );
-
-	$order->update_meta_data( '_portalsluchu_admin_notified', 1 );
-	$order->save();
 }

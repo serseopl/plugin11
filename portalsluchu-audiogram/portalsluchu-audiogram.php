@@ -3,15 +3,14 @@
  * Plugin Name: portalsluchu – Audiogram produktu
  * Description: portalsluchu-audiogram / Metabox audiogramu i ustawień modelu aparatu (w tym maksymalna długość gwarancji) dla produktów WooCommerce. Dane audiogramu są przechowywane w meta 'serseo_audiogram' i mogą być współdzielone między produktami o tym samym modelu (meta 'hearing_aid_model').
  * Author: portalsluchu.pl
- * Version: 1.1.0
+ * Version: 1.1.1
  */ 
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-/** 
- * Lista częstotliwości (Hz) używana w audiogramie produktów.
+/** * Lista częstotliwości (Hz) używana w audiogramie produktów.
  */
 function portalsluchu_product_audiogram_frequencies() {
     return array( 125, 250, 500, 750, 1000, 1500, 2000, 3000, 4000, 5000, 6000, 8000 );
@@ -50,8 +49,11 @@ function portalsluchu_product_audiogram_metabox_cb( $post ) {
 
     // Maksymalna długość gwarancji
     $max_warranty = get_post_meta( $post->ID, 'portalsluchu_max_warranty_years', true );
-    if ( ! $max_warranty ) {
-        $max_warranty = 1;
+    
+    // POPRAWKA: Jeśli meta nie istnieje (pusty string), ustaw domyślnie 0 (5 dni).
+    // Wcześniejszy kod `if ( ! $max_warranty )` nadpisywał również zapisaną wartość '0'.
+    if ( $max_warranty === '' ) {
+        $max_warranty = 0;
     }
     ?>
     <p>
@@ -112,6 +114,7 @@ function portalsluchu_product_audiogram_metabox_cb( $post ) {
     <p>
         <label for="portalsluchu_max_warranty_years"><strong>Maksymalna długość gwarancji dla tego modelu:</strong></label><br>
         <select name="portalsluchu_max_warranty_years" id="portalsluchu_max_warranty_years">
+            <option value="0" <?php selected( $max_warranty, 0 ); ?>>5 dni</option>
             <option value="1" <?php selected( $max_warranty, 1 ); ?>>1 rok</option>
             <option value="2" <?php selected( $max_warranty, 2 ); ?>>do 2 lat</option>
             <option value="3" <?php selected( $max_warranty, 3 ); ?>>do 3 lat</option>
@@ -134,7 +137,7 @@ function portalsluchu_product_audiogram_save( $post_id, $post ) {
     }
 
     if ( ! isset( $_POST['portalsluchu_product_audiogram_nonce'] )
-         || ! wp_verify_nonce( $_POST['portalsluchu_product_audiogram_nonce'], 'portalsluchu_product_audiogram_save' ) ) {
+          || ! wp_verify_nonce( $_POST['portalsluchu_product_audiogram_nonce'], 'portalsluchu_product_audiogram_save' ) ) {
         return;
     }
 
@@ -146,7 +149,7 @@ function portalsluchu_product_audiogram_save( $post_id, $post ) {
         return;
     }
 
-    $frequencies   = portalsluchu_product_audiogram_frequencies();
+    $frequencies    = portalsluchu_product_audiogram_frequencies();
     $new_audiogram = array();
 
     foreach ( $frequencies as $hz ) {
@@ -200,8 +203,11 @@ function portalsluchu_product_audiogram_save( $post_id, $post ) {
     // Zapis maksymalnej gwarancji
     if ( isset( $_POST['portalsluchu_max_warranty_years'] ) ) {
         $max_w = intval( $_POST['portalsluchu_max_warranty_years'] );
-        if ( $max_w < 1 || $max_w > 3 ) {
-            $max_w = 1;
+        
+        // POPRAWKA: Dopuszczamy 0 (5 dni) jako poprawną wartość.
+        // Zakres: 0 - 3. Domyślnie ustawiamy 0 jeśli wyjdzie poza zakres.
+        if ( $max_w < 0 || $max_w > 3 ) {
+            $max_w = 0;
         }
         update_post_meta( $post_id, 'portalsluchu_max_warranty_years', $max_w );
     }

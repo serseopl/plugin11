@@ -207,13 +207,36 @@ wp_mail( $seller_email, $subject_user, $message_user, $headers );
 ?>
 
 <?php if ( $success_msg ) : ?>
-  <div class="portalsluchu-success"><?php echo wp_kses_post( $success_msg ); ?></div>
+  <div class="ps-alert ps-alert-success" style="margin:32px auto;
+      background:rgba(236,253,245,1);
+      border: 1px solid #A7F3D0;
+      color:#065f46;
+      border-radius:14px;
+      box-shadow:0 10px 24px rgba(0,0,0,.04);
+      font-weight:800;
+      font-size:20px;
+      padding:24px 26px;
+      max-width:400px;
+      text-align:center;">
+      <?php echo wp_kses_post( $success_msg ); ?>
+  </div>
+  <script>
+  // reset, schowaj formularz po wysłaniu
+  document.addEventListener("DOMContentLoaded", function(){
+      var form = document.querySelector('.portalsluchu-sell-form');
+      if(form){ form.reset(); form.style.display="none"; }
+  });
+  </script>
 <?php endif; ?>
 
 <?php if ( $error_msg ) : ?>
-  <div class="portalsluchu-error"><?php echo wp_kses_post( $error_msg ); ?></div>
+  <div class="portalsluchu-error" style="margin:22px auto; color:#991b1b; padding:20px;
+       border-radius:14px; border:1px solid #FCA5A5; background:rgba(254,242,242,1); max-width:400px; text-align:center;">
+    <?php echo wp_kses_post( $error_msg ); ?>
+  </div>
 <?php endif; ?>
 
+<?php if ( ! $success_msg ) : ?>
 <div class="ps-sell-layout">
   <aside class="ps-sidecard">
     <div class="ps-card-title">Twoje dane kontaktowe</div>
@@ -352,8 +375,7 @@ wp_mail( $seller_email, $subject_user, $message_user, $headers );
       </div>
     </form>
   </main>
-</div>
-
+</div> 
 <script>
 (function() {
   var form        = document.querySelector('.portalsluchu-sell-form');
@@ -469,3 +491,4 @@ wp_mail( $seller_email, $subject_user, $message_user, $headers );
   refreshButtons();
 })();
 </script>
+<?php endif; ?>
